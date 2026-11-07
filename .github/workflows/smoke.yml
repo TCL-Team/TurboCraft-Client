@@ -76,24 +76,31 @@ jobs:
           # Coordinates are for the smoke test's own logical resolution, so they are only a hint —
           # if the click misses we still keep the title screenshot.
           if command -v xdotool >/dev/null; then
-            # The game window is not at (0,0) on the root display, so coordinates must come from
-            # xdotool's window geometry — hardcoded root coordinates landed on the wrong button.
+            # Coordinate clicks are unreliable (window offset + Gui scale), so navigate with the
+            # keyboard instead: Tab walks the button column in creation order, Enter activates.
             eval "$(DISPLAY=:99 xdotool search --name 'Minecraft' getwindowgeometry --shell 2>/dev/null | head -4)"
-            if [ -n "${W:-}" ]; then
-              CX=$((X + W / 2))
-              # "TurboCraft Settings" sits at ~50% of the window height
-              CY=$((Y + H / 2))
-              DISPLAY=:99 xdotool mousemove "$CX" "$CY" click 1 2>/dev/null || true
-              sleep 5
-              DISPLAY=:99 import -window root /tmp/menu.png 2>/dev/null || true
+            DISPLAY=:99 xdotool windowactivate --sync "$WINDOW" 2>/dev/null || true
+            sleep 1
+            # 3 x Tab -> "TurboCraft Settings" (1: singleplayer, 2: multiplayer, 3: settings)
+            DISPLAY=:99 xdotool key --window "$WINDOW" Tab 2>/dev/null || true
+            sleep 1
+            DISPLAY=:99 xdotool key --window "$WINDOW" Tab 2>/dev/null || true
+            sleep 1
+            DISPLAY=:99 xdotool key --window "$WINDOW" Tab 2>/dev/null || true
+            sleep 1
+            DISPLAY=:99 xdotool key --window "$WINDOW" Return 2>/dev/null || true
+            sleep 5
+            DISPLAY=:99 import -window root /tmp/menu.png 2>/dev/null || true
 
-              # inside the client menu the left rail starts ~10% from the left, cosmetic row is 3rd
-              MX=$((X + W * 12 / 100))
-              MY=$((Y + H * 38 / 100))
-              DISPLAY=:99 xdotool mousemove "$MX" "$MY" click 1 2>/dev/null || true
-              sleep 3
-              DISPLAY=:99 import -window root /tmp/menu2.png 2>/dev/null || true
-            fi
+            # inside the menu: tab to the COSMETICS rail entry and open it
+            for i in 1 2 3 4 5 6; do
+              DISPLAY=:99 xdotool key --window "$WINDOW" Tab 2>/dev/null || true
+              sleep 0.4
+            done
+            DISPLAY=:99 xdotool key --window "$WINDOW" Return 2>/dev/null || true
+            sleep 4
+            DISPLAY=:99 import -window root /tmp/menu2.png 2>/dev/null || true
+          fi
           fi
 
           # coarse colour grid so CI logs show what was actually drawn
