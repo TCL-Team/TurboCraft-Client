@@ -76,9 +76,14 @@ jobs:
           # Coordinates are for the smoke test's own logical resolution, so they are only a hint —
           # if the click misses we still keep the title screenshot.
           if command -v xdotool >/dev/null; then
-            DISPLAY=:99 xdotool mousemove 500 278 click 1 2>/dev/null || true
-            sleep 4
+            # "TurboCraft Settings" is the 3rd button of the column
+            DISPLAY=:99 xdotool mousemove 500 271 click 1 2>/dev/null || true
+            sleep 5
             DISPLAY=:99 import -window root /tmp/menu.png 2>/dev/null || true
+            # and the Cosmetics tab inside that menu (left rail, 3rd row)
+            DISPLAY=:99 xdotool mousemove 400 200 click 1 2>/dev/null || true
+            sleep 3
+            DISPLAY=:99 import -window root /tmp/menu2.png 2>/dev/null || true
           fi
 
           # coarse colour grid so CI logs show what was actually drawn
@@ -92,6 +97,9 @@ jobs:
               cp /tmp/title.png ci-artifacts/title-screen.png
             if [ -f /tmp/menu.png ]; then
               convert /tmp/menu.png -resize 1000x -quality 80 ci-artifacts/client-menu.jpg 2>/dev/null || true
+            fi
+            if [ -f /tmp/menu2.png ]; then
+              convert /tmp/menu2.png -resize 1000x -quality 80 ci-artifacts/client-menu-cosmetics.jpg 2>/dev/null || true
             fi
             ls -la ci-artifacts/
           else
