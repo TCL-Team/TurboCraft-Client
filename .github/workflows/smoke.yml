@@ -1,0 +1,69 @@
+name: Smoke test (headless Minecraft)
+
+# Boots Minecraft 1.20.1 with the mod on a virtual display (Xvfb + Mesa llvmpipe).
+# Ye asli phone test ka replacement nahi hai, par mixin/startup crash 30 second me pakad leta hai.
+# Manual trigger: Actions -> Smoke test -> Run workflow.
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "client/src/main/resources/**.mixins.json"
+      - ".github/workflows/smoke.yml"
+
+jobs:
+  smoke:
+    name: Launch MC with mod
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: gradle/actions/setup-gradle@v3
+
+      - name: Install virtual display + software GL
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq xvfb libgl1-mesa-dri libglu1-mesa mesa-utils
+
+      - name: Boot the game (8 min cap)
+        working-directory: client
+        run: |
+          chmod +x gradlew
+          # runClient never exits by itself, so cap it. Exit code is expected to be non-zero.
+          timeout 480 xvfb-run -a -s "-screen 0 1280x720x24" \
+            ./gradlew runClient --console=plain --no-daemon > /tmp/client.log 2>&1 || true
+          echo "log size: $(wc -l < /tmp/client.log) lines"
+
+      - name: Evaluate result
+        run: |
+          echo "=== TurboCraft / mixin lines ==="
+          grep -nE "TurboCraft|mixin|Mixin|Setting user|Backend library|OpenGL|LWJGL" /tmp/client.log | tail -40 || true
+
+          LOADED=$(grep -c "\[TurboCraft\] Client loaded" /tmp/client.log || true)
+          CRASH=$(grep -cE "MixinApplyError|Mixin apply failed|MixinTransformerError|Unexpected error|HaltException" /tmp/client.log || true)
+
+          echo "::notice::TurboCraft loaded markers: ${LOADED}"
+          echo "::notice::Crash markers: ${CRASH}"
+
+          if [ "$LOADED" -ge 1 ] && [ "$CRASH" -eq 0 ]; then
+            echo "::notice::SMOKE PASS — mod loaded, no mixin errors"
+          else
+            echo "::error::SMOKE FAIL — see log tail below"
+            tail -60 /tmp/client.log | while IFS= read -r line; do echo "  $line"; done
+            exit 1
+          fi
+
+      - name: Upload log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: smoke-client-log
+          path: /tmp/client.log
+          retention-days: 7
