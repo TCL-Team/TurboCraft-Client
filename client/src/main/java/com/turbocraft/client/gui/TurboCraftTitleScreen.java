@@ -51,6 +51,8 @@ public class TurboCraftTitleScreen extends Screen {
     private int discordH;
 
     private int logoY;
+    private int storeBottom;
+    private int quitBottom;
     private boolean discordVisible = true;
 
     public TurboCraftTitleScreen() {
@@ -61,17 +63,19 @@ public class TurboCraftTitleScreen extends Screen {
 
     @Override
     protected void init() {
-        btnW = Math.min(236, this.width - 40);
-        btnH = this.height < 300 ? 18 : 22;
-        int gap = btnH < 20 ? 3 : 4;
+        // Narrow logical widths happen a lot on phones (Gui scale 3-4 on a 1080p screen leaves
+        // ~360 px). Everything below is driven off that number instead of assuming desktop size.
+        boolean narrow = this.width < 560;
 
-        // 5 rows: singleplayer, multiplayer, cosmetics, store, quit -> quit is separated
-        int rows = 4;
-        colTop = this.height / 2 - (rows * btnH + (rows - 1) * gap) / 2 + 6;
-        colTop = Math.max(74, colTop);
+        btnW = Math.min(narrow ? 188 : 236, this.width - 32);
+        btnH = this.height < 280 ? 16 : (this.height < 380 ? 19 : 22);
+        int gap = btnH < 19 ? 3 : 4;
+
+        int rows = 4; // singleplayer, multiplayer, settings, store
+        int blockH = rows * btnH + (rows - 1) * gap;
+        colTop = Math.max(64, this.height / 2 - blockH / 2 - 4);
         colX = this.width / 2 - btnW / 2;
-
-        logoY = Math.max(16, colTop - 58);
+        logoY = Math.max(10, colTop - 52);
 
         int y = colTop;
         this.addDrawableChild(new TurboButton(colX, y, btnW, btnH,
@@ -96,35 +100,27 @@ public class TurboCraftTitleScreen extends Screen {
                 Text.literal("Store / Cosmetics"),
                 this::openStore,
                 TurboButton.Style.ACCENT, "ST"));
+        storeBottom = y + btnH;
 
-        // Quit, floating at the bottom of the column
-        int quitY = Math.min(this.height - 46, y + btnH + 26);
+        // ---- discord card: bottom-right, sized so it can never sit under the button column ----
+        discordW = narrow ? 96 : 122;
+        discordH = narrow ? 46 : 58;
+        discordX = this.width - discordW - 8;
+        discordY = this.height - discordH - 24;
+
+        int columnRight = colX + btnW;
+        boolean overlapsColumn = discordX < columnRight + 4 && discordY < storeBottom + 6;
+        discordVisible = !overlapsColumn && discordY > storeBottom;
+
+        // ---- quit: under the store button, kept off the very bottom edge ----
+        int quitY = storeBottom + (narrow ? 14 : 22);
+        quitY = Math.min(quitY, this.height - btnH - 20);
+        quitY = Math.max(quitY, storeBottom + 4);
         this.addDrawableChild(new TurboButton(colX, quitY, btnW, btnH,
                 Text.literal("Quit Game"),
                 () -> this.client.scheduleStop(),
                 TurboButton.Style.DANGER));
-
-        // Discord card, bottom-right. It must never overlap the centred column: on narrow screens
-        // the column and the card would otherwise collide (exactly what happened at 1000x562).
-        discordW = 122;
-        discordH = 62;
-        int cardRight = this.width - 12;
-        discordX = cardRight - discordW;
-        discordY = this.height - discordH - 26;
-
-        boolean cardFits = discordX > colX + btnW + 8;
-        if (!cardFits) {
-            // narrow / phone-portrait: shrink and push it below the column's last button
-            discordW = Math.min(118, this.width - 24);
-            discordH = 46;
-            discordX = this.width - discordW - 10;
-            discordY = this.height - discordH - 6;
-        }
-        discordVisible = cardFits || (discordY > quitY + btnH + 4);
-        if (!discordVisible) {
-            discordW = 0;
-            discordH = 0;
-        }
+        quitBottom = quitY + btnH;
     }
 
     private void openStore() {
@@ -158,7 +154,6 @@ public class TurboCraftTitleScreen extends Screen {
         super.render(context, mouseX, mouseY, delta); // buttons
         drawVersionLine(context);
         drawDiscordCard(context, mouseX, mouseY);
-        drawFooter(context);
     }
 
     /** Static image, cover-fit, plus vertical darkening so text stays readable. */
@@ -221,7 +216,16 @@ public class TurboCraftTitleScreen extends Screen {
         context.fill(x + 4, y + size - 5, x + size - 4, y + size - 4, Theme.ACCENT_FAINT);
     }
 
+    /**
+     * Footer bar: disclaimer bottom-left, version bottom-right, on one line.
+     *
+     * <p>Two centred lines were overlapping the Quit button at 1000x562, so this measures the
+     * quit button and simply hides the bar when there is no room left.
+     */
     private void drawVersionLine(DrawContext context) {
+        int barY = this.height - 11;
+        if (barY < quitBottom + 2) return; // no room — better to hide than to overlap
+
         String clientVersion = FabricLoader.getInstance().getModContainer(TurboCraftClient.MOD_ID)
                 .map(c -> c.getMetadata().getVersion().getFriendlyString())
                 .orElse("dev");
@@ -233,9 +237,14 @@ public class TurboCraftTitleScreen extends Screen {
         int plus = mcVersion.indexOf('+');
         if (plus > 0) mcVersion = mcVersion.substring(0, plus);
 
-        Text line = Text.literal("TurboCraft " + clientVersion + "  |  mc " + mcVersion);
-        context.drawCenteredTextWithShadow(this.textRenderer, line,
-                this.width / 2, this.height - 11, Theme.TEXT_FAINT);
+        Text left = Text.literal("Not affiliated with Mojang or Microsoft");
+        context.drawTextWithShadow(this.textRenderer, left, 6, barY, Theme.TEXT_FAINT);
+
+        Text right = Text.literal("TurboCraft " + clientVersion + "  |  mc " + mcVersion);
+        int rightX = this.width - this.textRenderer.getWidth(right) - 6;
+        if (rightX > 6 + this.textRenderer.getWidth(left) + 6) {
+            context.drawTextWithShadow(this.textRenderer, right, rightX, barY, Theme.TEXT_FAINT);
+        }
     }
 
     /** Discord promo card — clickable region, not a widget, so it can sit anywhere. */
@@ -266,12 +275,6 @@ public class TurboCraftTitleScreen extends Screen {
                 discordX + discordW / 2, discordY + iconSize + 12, Theme.ACCENT);
         context.drawCenteredTextWithShadow(this.textRenderer, Text.literal("CLICK HERE"),
                 discordX + discordW / 2, discordY + iconSize + 21, Theme.TEXT_DIM);
-    }
-
-    private void drawFooter(DrawContext context) {
-        Text disclaimer = Text.literal("Not affiliated with Mojang or Microsoft");
-        context.drawTextWithShadow(this.textRenderer, disclaimer,
-                6, this.height - 11, Theme.TEXT_FAINT);
     }
 
     // ------------------------------------------------------------------ input
