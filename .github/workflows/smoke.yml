@@ -33,14 +33,44 @@ jobs:
           sudo apt-get update -qq
           sudo apt-get install -y -qq xvfb libgl1-mesa-dri libglu1-mesa mesa-utils
 
-      - name: Boot the game (8 min cap)
-        working-directory: client
+      - name: Boot the game and screenshot the title screen
         run: |
           chmod +x gradlew
-          # runClient never exits by itself, so cap it. Exit code is expected to be non-zero.
-          timeout 480 xvfb-run -a -s "-screen 0 1280x720x24" \
-            ./gradlew runClient --console=plain --no-daemon > /tmp/client.log 2>&1 || true
-          echo "log size: $(wc -l < /tmp/client.log) lines"
+          sudo apt-get install -y -qq imagemagick x11-apps >/dev/null 2>&1 || true
+
+          Xvfb :99 -screen 0 1280x720x24 > /tmp/xvfb.log 2>&1 &
+          sleep 2
+
+          # launch in background so we can screenshot while the game is alive
+          DISPLAY=:99 ./gradlew runClient --console=plain --no-daemon > /tmp/client.log 2>&1 &
+          GAME_PID=$!
+
+          # wait for the mod to report it loaded (max 8 min)
+          for i in $(seq 1 96); do
+            if grep -q "\[TurboCraft\] Client loaded" /tmp/client.log 2>/dev/null; then
+              echo "mod loaded after ~$((i*5))s"
+              break
+            fi
+            sleep 5
+          done
+
+          # give the title screen a few frames to render
+          sleep 12
+          DISPLAY=:99 import -window root /tmp/title.png 2>/dev/null || true
+
+          # coarse colour grid so CI logs show what was actually drawn
+          if [ -f /tmp/title.png ]; then
+            convert /tmp/title.png -resize 16x8! -depth 8 txt:- 2>/dev/null \
+              | grep -oE '#[0-9A-F]{6}' | paste -sd' ' \
+              | fold -w 200 | while IFS= read -r row; do echo "GRID: $row"; done
+            echo "::notice::SCREENSHOT CAPTURED $(stat -c%s /tmp/title.png) bytes"
+          else
+            echo "::warning::no screenshot captured"
+          fi
+
+          kill $GAME_PID 2>/dev/null || true
+          sleep 2
+          pkill -f "net.minecraft" 2>/dev/null || true
 
       - name: Evaluate result
         run: |
@@ -66,5 +96,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: smoke-client-log
-          path: /tmp/client.log
+          path: |
+            /tmp/client.log
+            /tmp/title.png
           retention-days: 7
