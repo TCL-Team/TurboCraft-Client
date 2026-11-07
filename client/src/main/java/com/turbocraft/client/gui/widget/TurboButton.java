@@ -51,8 +51,10 @@ public class TurboButton extends PressableWidget {
     }
 
     @Override
-    protected void renderWidget(DrawContext context, int mouseX, int mouseY, float delta) {
-        boolean hovered = this.isHovered() && this.active;
+    protected void renderButton(DrawContext context, int mouseX, int mouseY, float delta) {
+        boolean hovered = (mouseX >= this.getX() && mouseY >= this.getY()
+                && mouseX < this.getX() + this.getWidth()
+                && mouseY < this.getY() + this.getHeight()) && this.active;
         int x = this.getX();
         int y = this.getY();
         int right = x + this.getWidth();

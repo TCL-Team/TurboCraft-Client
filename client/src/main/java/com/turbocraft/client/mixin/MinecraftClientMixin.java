@@ -23,7 +23,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 public class MinecraftClientMixin {
 
     @Shadow
-    private Screen screen;
+    private Screen currentScreen;
 
     @Inject(method = "setScreen", at = @At("HEAD"), cancellable = true)
     private void turbocraft$customTitleScreen(Screen newScreen, CallbackInfo ci) {
@@ -34,7 +34,7 @@ public class MinecraftClientMixin {
         if (client.getWindow() == null) return;
 
         TurboCraftTitleScreen replacement = new TurboCraftTitleScreen();
-        this.screen = replacement;
+        this.currentScreen = replacement;
         replacement.init(client, client.getWindow().getScaledWidth(),
                 client.getWindow().getScaledHeight());
         ci.cancel();
