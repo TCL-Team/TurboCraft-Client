@@ -39,7 +39,7 @@ jobs:
         working-directory: client
         run: |
           chmod +x gradlew
-          sudo apt-get install -y -qq imagemagick x11-apps >/dev/null 2>&1 || true
+          sudo apt-get install -y -qq imagemagick x11-apps xdotool >/dev/null 2>&1 || true
 
           Xvfb :99 -screen 0 1280x720x24 > /tmp/xvfb.log 2>&1 &
           sleep 2
@@ -72,6 +72,15 @@ jobs:
           sleep 18
           DISPLAY=:99 import -window root /tmp/title.png 2>/dev/null || true
 
+          # click the "TurboCraft Settings" button (5th row of the column) to capture the client menu.
+          # Coordinates are for the smoke test's own logical resolution, so they are only a hint —
+          # if the click misses we still keep the title screenshot.
+          if command -v xdotool >/dev/null; then
+            DISPLAY=:99 xdotool mousemove 500 278 click 1 2>/dev/null || true
+            sleep 4
+            DISPLAY=:99 import -window root /tmp/menu.png 2>/dev/null || true
+          fi
+
           # coarse colour grid so CI logs show what was actually drawn
           if [ -f /tmp/title.png ]; then
             convert /tmp/title.png -resize 16x8! -depth 8 txt:- 2>/dev/null \
@@ -81,6 +90,9 @@ jobs:
             mkdir -p ci-artifacts
             convert /tmp/title.png -resize 1000x -quality 80 ci-artifacts/title-screen.jpg 2>/dev/null || \
               cp /tmp/title.png ci-artifacts/title-screen.png
+            if [ -f /tmp/menu.png ]; then
+              convert /tmp/menu.png -resize 1000x -quality 80 ci-artifacts/client-menu.jpg 2>/dev/null || true
+            fi
             ls -la ci-artifacts/
           else
             echo "::warning::no screenshot captured"
