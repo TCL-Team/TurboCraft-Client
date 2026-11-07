@@ -34,6 +34,7 @@ jobs:
           sudo apt-get install -y -qq xvfb libgl1-mesa-dri libglu1-mesa mesa-utils
 
       - name: Boot the game and screenshot the title screen
+        working-directory: client
         run: |
           chmod +x gradlew
           sudo apt-get install -y -qq imagemagick x11-apps >/dev/null 2>&1 || true
@@ -99,4 +100,5 @@ jobs:
           path: |
             /tmp/client.log
             /tmp/title.png
+          if-no-files-found: warn
           retention-days: 7
