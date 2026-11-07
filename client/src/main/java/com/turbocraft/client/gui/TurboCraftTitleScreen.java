@@ -225,7 +225,7 @@ public class TurboCraftTitleScreen extends Screen {
 
         int footerTop = this.height - 24;
         context.drawTextWithShadow(this.textRenderer,
-                Text.literal("Minecraft " + mcVersion + " · Fabric"), 4, footerTop, MUTED);
+                Text.literal("Minecraft " + mcVersion + "  |  Fabric"), 4, footerTop, MUTED);
         context.drawTextWithShadow(this.textRenderer,
                 Text.literal("TurboCraft Client " + clientVersion), 4, footerTop + 10, ACCENT);
 
