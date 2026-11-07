@@ -79,13 +79,15 @@ public class TurboCraftTitleScreen extends Screen {
             brandSpace = 24;
         }
 
-        logoScale = this.height >= 300 ? 2 : 1;
-
+        // 2x logo whenever at least ~46 logical px fit above the panel, else 1x
         panelW = Math.min(232, this.width - 24);
         int padding = 12;
         panelH = blockH + padding * 2;
         panelX = this.width / 2 - panelW / 2;
         panelY = Math.max(brandSpace + 4, (this.height - panelH) / 2 + 6);
+
+        // 2x logo whenever at least ~46 logical px fit above the panel, else 1x
+        logoScale = (panelY - 6) >= 46 ? 2 : 1;
 
         int x = this.width / 2 - (panelW - padding * 2) / 2;
         int innerW = panelW - padding * 2;
@@ -173,21 +175,24 @@ public class TurboCraftTitleScreen extends Screen {
         context.fill(panelX + panelW - 1, panelY, panelX + panelW, panelY + panelH, 0x303DD6D0);
     }
 
-    /** Logo + tagline, always above the panel and always on screen. */
+    /** Logo + tagline, always above the panel and always fully on screen. */
     private void drawBranding(DrawContext context) {
         int centerX = this.width / 2;
         String logo = "TURBOCRAFT";
 
-        int logoWidth = this.textRenderer.getWidth(logo) * logoScale;
-        int logoY = panelY - 8 - (this.textRenderer.fontHeight * logoScale);
-        logoY = Math.max(2, logoY);
+        int logoH = this.textRenderer.fontHeight * logoScale;
+        int logoW = this.textRenderer.getWidth(logo) * logoScale;
 
-        int logoX = centerX - logoWidth / 2;
+        // place the logo so it ends ~8px above the panel, but never above y=4
+        int logoY = panelY - 10 - logoH;
+        logoY = Math.max(4, logoY);
+
+        int logoX = centerX - logoW / 2;
+
         if (logoScale > 1) {
             context.getMatrices().push();
             context.getMatrices().translate(logoX, logoY, 0);
             context.getMatrices().scale(logoScale, logoScale, 1.0f);
-            // soft glow: two offset copies at low alpha, then the real text
             context.drawText(this.textRenderer, logo, 1, 1, 0x403DD6D0, false);
             context.drawText(this.textRenderer, logo, -1, -1, 0x403DD6D0, false);
             context.drawText(this.textRenderer, logo, 0, 0, ACCENT, true);
@@ -196,8 +201,9 @@ public class TurboCraftTitleScreen extends Screen {
             context.drawText(this.textRenderer, logo, logoX, logoY, ACCENT, true);
         }
 
-        int taglineY = logoY + this.textRenderer.fontHeight * logoScale + 2;
-        if (taglineY + 9 < panelY) {
+        // tagline only when it genuinely fits between logo and panel
+        int taglineY = logoY + logoH + 3;
+        if (taglineY + 9 <= panelY - 2) {
             context.drawCenteredTextWithShadow(this.textRenderer, Text.literal(this.tagline),
                     centerX, taglineY, MUTED);
         }
