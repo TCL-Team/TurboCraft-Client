@@ -6,25 +6,47 @@ import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.util.InputUtil;
+import net.minecraft.client.util.math.MatrixStack;
 import org.lwjgl.glfw.GLFW;
+
+import java.util.Arrays;
 
 /**
  * Draws the TurboCraft HUD.
  *
- * <p>Only vanilla text + {@code DrawContext#fill} are used — no custom fonts, textures or shaders.
- * On Android every extra asset means more VRAM pressure on the GL4ES / MobileGlues path, and this
- * HUD has to stay readable at 30 FPS.
+ * <p><b>Honest note:</b> this class does not improve FPS. It adds a handful of {@code fill()} calls
+ * and text draws per frame — a fraction of a millisecond. Any FPS you gain on Android comes from the
+ * renderer (MobileGlues / Zink), Sodium/Lithium, resolution scale and render distance, not from here.
+ * The FPS graph and 1% low exist so those claims can actually be measured instead of guessed.
+ *
+ * <p>Only vanilla text + {@code DrawContext#fill} are used — no custom fonts, textures or shaders,
+ * because on Android every extra asset means more VRAM pressure on the GL4ES / MobileGlues path.
  */
 public final class HudRenderer {
+    public static final int LINE = 10;
+    public static final int KEY_SIZE = 16;
+    public static final int KEY_GAP = 2;
+    public static final int GRAPH_WIDTH = 60;
+    public static final int GRAPH_HEIGHT = 14;
+
     private static final int PADDING = 3;
-    private static final int LINE_HEIGHT = 10;
     private static final int WHITE = 0xFFFFFFFF;
     private static final int BG = 0x90000000;
     private static final int ACCENT = 0xFF55FFFF;
+    private static final int MUTED = 0xFFAAAAAA;
 
+    // ---- frame timing (for FPS, graph and 1% low) ----
+    private static final int SAMPLES = 240;
+    private static final long[] FRAME_NANOS = new long[SAMPLES];
+    private static int frameIndex;
+    private static long lastFrameNanos;
     private static long fpsWindowStart = System.currentTimeMillis();
     private static int fpsFrames;
     private static int cachedFps;
+    private static int cachedOnePercentLow;
+
+    /** Set while the HUD editor is open so the live HUD does not draw twice. */
+    public static boolean suppressed;
 
     private HudRenderer() {
     }
@@ -34,68 +56,154 @@ public final class HudRenderer {
     }
 
     private static void onHudRender(DrawContext context, float tickDelta) {
+        trackFrame();
+
         MinecraftClient client = MinecraftClient.getInstance();
         TurboCraftConfig config = TurboCraftConfig.get();
 
-        trackFps();
-
+        if (suppressed) return;
         if (!config.hudEnabled) return;
-        if (client.options.hudHidden) return;
-        if (client.player == null) return;
+        if (client.options.hudHidden || client.player == null) return;
 
-        int y = config.hudY;
+        drawHud(context, client, config, config.hudX, config.hudY, false);
+    }
+
+    /**
+     * Draws the whole HUD.
+     *
+     * @param preview true in the HUD editor: sample values are shown instead of live ones so the
+     *                layout can be positioned before joining a world
+     */
+    public static void drawHud(DrawContext context, MinecraftClient client, TurboCraftConfig config,
+                               int x, int y, boolean preview) {
+        MatrixStack matrices = context.getMatrices();
+        matrices.push();
+        matrices.translate(x, y, 0.0);
+        matrices.scale(config.hudScale, config.hudScale, 1.0f);
+
+        int cursorY = 0;
 
         if (config.showFps) {
-            drawLine(context, client, config.hudX, y, "FPS: " + cachedFps, config);
-            y += LINE_HEIGHT;
+            drawLine(context, client, 0, cursorY, "FPS: " + (preview ? 144 : cachedFps), config);
+            cursorY += LINE;
+        }
+
+        if (config.showGraph) {
+            drawGraph(context, client, 0, cursorY, config, preview);
+            cursorY += GRAPH_HEIGHT + 2;
         }
 
         if (config.showCps) {
-            drawLine(context, client, config.hudX, y,
-                    "CPS: " + InputTracker.getCpsLeft() + " | " + InputTracker.getCpsRight(), config);
-            y += LINE_HEIGHT;
+            String cps = preview
+                    ? "9 | 6"
+                    : InputTracker.getCpsLeft() + " | " + InputTracker.getCpsRight();
+            drawLine(context, client, 0, cursorY, "CPS: " + cps, config);
+            cursorY += LINE;
         }
 
-        if (config.showPing && client.getNetworkHandler() != null) {
-            int ping = InputTracker.getPing();
+        boolean multiplayer = preview || (!client.isInSingleplayer() && client.getNetworkHandler() != null);
+        if (config.showPing && multiplayer) {
+            int ping = preview ? 23 : InputTracker.getPing();
             if (ping >= 0) {
-                drawLine(context, client, config.hudX, y, "Ping: " + ping + "ms", config);
-                y += LINE_HEIGHT;
+                drawLine(context, client, 0, cursorY, "Ping: " + ping + "ms", config);
+                cursorY += LINE;
             }
         }
 
         if (config.showCoords) {
-            var pos = client.player.getBlockPos();
-            drawLine(context, client, config.hudX, y,
-                    "XYZ: " + pos.getX() + " " + pos.getY() + " " + pos.getZ(), config);
-            y += LINE_HEIGHT;
+            String coords = preview
+                    ? "128 71 -240"
+                    : client.player.getBlockPos().getX() + " "
+                      + client.player.getBlockPos().getY() + " "
+                      + client.player.getBlockPos().getZ();
+            drawLine(context, client, 0, cursorY, "XYZ: " + coords, config);
+            cursorY += LINE;
         }
 
-        if (config.showKeystrokes && client.currentScreen == null) {
-            y += 2;
-            drawKeystrokes(context, client, config.hudX, y, config);
+        if (config.showKeystrokes) {
+            cursorY += 2;
+            drawKeystrokes(context, client, 0, cursorY, config, preview);
         }
+
+        matrices.pop();
+    }
+
+    /** Approximate on-screen size at scale 1 — used by the HUD editor for the drag box. */
+    public static int[] measure(MinecraftClient client, TurboCraftConfig config) {
+        int width = 0;
+        int height = 0;
+
+        if (config.showFps) {
+            width = Math.max(width, textWidth(client, "FPS: 144") + PADDING * 2);
+            height += LINE;
+        }
+        if (config.showGraph) {
+            width = Math.max(width, GRAPH_WIDTH + textWidth(client, "1%: 999") + 10);
+            height += GRAPH_HEIGHT + 2;
+        }
+        if (config.showCps) {
+            width = Math.max(width, textWidth(client, "CPS: 12 | 12") + PADDING * 2);
+            height += LINE;
+        }
+        if (config.showPing) {
+            width = Math.max(width, textWidth(client, "Ping: 999ms") + PADDING * 2);
+            height += LINE;
+        }
+        if (config.showCoords) {
+            width = Math.max(width, textWidth(client, "XYZ: -256 100 404") + PADDING * 2);
+            height += LINE;
+        }
+        if (config.showKeystrokes) {
+            width = Math.max(width, KEY_SIZE * 3 + KEY_GAP * 2);
+            height += 2 + (KEY_SIZE + KEY_GAP) * 3;
+        }
+        return new int[]{Math.max(width, 40), Math.max(height, 12)};
+    }
+
+    private static int textWidth(MinecraftClient client, String text) {
+        return client == null || client.textRenderer == null ? 60 : client.textRenderer.getWidth(text);
+    }
+
+    /** Frame-time bars + 1% low. Red = worse than 30 FPS, amber = worse than 50 FPS. */
+    private static void drawGraph(DrawContext context, MinecraftClient client, int x, int y,
+                                  TurboCraftConfig config, boolean preview) {
+        if (config.hudBackground) {
+            context.fill(x, y, x + GRAPH_WIDTH + 2, y + GRAPH_HEIGHT + 2, BG);
+        }
+        for (int i = 0; i < GRAPH_WIDTH; i++) {
+            int index = frameIndex - GRAPH_WIDTH + i;
+            if (index < 0) continue;
+            long nanos = FRAME_NANOS[Math.floorMod(index, SAMPLES)];
+            if (nanos <= 0) continue;
+
+            double ms = preview ? 16.0 + (i % 7) : nanos / 1_000_000.0;
+            int barHeight = (int) Math.round(GRAPH_HEIGHT - Math.min(GRAPH_HEIGHT, ms / 2.0));
+            barHeight = Math.max(1, Math.min(GRAPH_HEIGHT, barHeight));
+            int color = ms > 33 ? 0xFFFF5555 : ms > 20 ? 0xFFFFAA00 : ACCENT;
+            context.fill(x + 1 + i, y + 1 + (GRAPH_HEIGHT - barHeight),
+                    x + 2 + i, y + 1 + GRAPH_HEIGHT, color);
+        }
+
+        int low = preview ? 96 : cachedOnePercentLow;
+        context.drawText(client.textRenderer, "1%: " + low,
+                x + GRAPH_WIDTH + 5, y + 4, MUTED, true);
     }
 
     /** WASD + space, Lunar style. */
     private static void drawKeystrokes(DrawContext context, MinecraftClient client, int x, int y,
-                                       TurboCraftConfig config) {
-        int keyW = 16;
-        int keyH = 16;
-        int gap = 2;
+                                       TurboCraftConfig config, boolean preview) {
+        drawKey(context, client, x + KEY_SIZE + KEY_GAP, y, KEY_SIZE, KEY_SIZE, "W",
+                preview || isDown(client, GLFW.GLFW_KEY_W), config);
+        drawKey(context, client, x, y + KEY_SIZE + KEY_GAP, KEY_SIZE, KEY_SIZE, "A",
+                !preview && isDown(client, GLFW.GLFW_KEY_A), config);
+        drawKey(context, client, x + KEY_SIZE + KEY_GAP, y + KEY_SIZE + KEY_GAP,
+                KEY_SIZE, KEY_SIZE, "S", !preview && isDown(client, GLFW.GLFW_KEY_S), config);
+        drawKey(context, client, x + (KEY_SIZE + KEY_GAP) * 2, y + KEY_SIZE + KEY_GAP,
+                KEY_SIZE, KEY_SIZE, "D", !preview && isDown(client, GLFW.GLFW_KEY_D), config);
 
-        drawKey(context, client, x + keyW + gap, y, keyW, keyH, "W",
-                isDown(client, GLFW.GLFW_KEY_W), config);
-        drawKey(context, client, x, y + keyH + gap, keyW, keyH, "A",
-                isDown(client, GLFW.GLFW_KEY_A), config);
-        drawKey(context, client, x + keyW + gap, y + keyH + gap, keyW, keyH, "S",
-                isDown(client, GLFW.GLFW_KEY_S), config);
-        drawKey(context, client, x + (keyW + gap) * 2, y + keyH + gap, keyW, keyH, "D",
-                isDown(client, GLFW.GLFW_KEY_D), config);
-
-        int spaceWidth = keyW * 3 + gap * 2;
-        drawKey(context, client, x, y + (keyH + gap) * 2, spaceWidth, keyH, "",
-                isDown(client, GLFW.GLFW_KEY_SPACE), config);
+        int spaceWidth = KEY_SIZE * 3 + KEY_GAP * 2;
+        drawKey(context, client, x, y + (KEY_SIZE + KEY_GAP) * 2, spaceWidth, KEY_SIZE, "",
+                !preview && isDown(client, GLFW.GLFW_KEY_SPACE), config);
     }
 
     private static void drawKey(DrawContext context, MinecraftClient client, int x, int y,
@@ -115,7 +223,7 @@ public final class HudRenderer {
                                  String text, TurboCraftConfig config) {
         if (config.hudBackground) {
             context.fill(x, y, x + client.textRenderer.getWidth(text) + PADDING * 2,
-                    y + LINE_HEIGHT, BG);
+                    y + LINE, BG);
         }
         context.drawText(client.textRenderer, text, x + PADDING, y + 1, ACCENT, true);
     }
@@ -125,14 +233,48 @@ public final class HudRenderer {
         return InputUtil.isKeyPressed(client.getWindow().getHandle(), glfwKey);
     }
 
-    private static void trackFps() {
+    // ---------------------------------------------------------------- frame stats
+
+    private static void trackFrame() {
+        long now = System.nanoTime();
+        if (lastFrameNanos != 0) {
+            FRAME_NANOS[Math.floorMod(frameIndex++, SAMPLES)] = now - lastFrameNanos;
+        }
+        lastFrameNanos = now;
+
         fpsFrames++;
-        long now = System.currentTimeMillis();
-        long elapsed = now - fpsWindowStart;
+        long elapsed = System.currentTimeMillis() - fpsWindowStart;
         if (elapsed >= 1000L) {
             cachedFps = (int) (fpsFrames * 1000L / elapsed);
             fpsFrames = 0;
-            fpsWindowStart = now;
+            fpsWindowStart = System.currentTimeMillis();
+            recomputeOnePercentLow();
         }
+    }
+
+    /**
+     * 1% low = average of the slowest 1% frames in the sample window, expressed as FPS.
+     * This is the number that actually tells you whether the game feels smooth.
+     */
+    private static void recomputeOnePercentLow() {
+        long[] sorted = FRAME_NANOS.clone();
+        Arrays.sort(sorted);
+
+        int valid = 0;
+        for (long value : sorted) {
+            if (value > 0) valid++;
+        }
+        if (valid < 20) {
+            cachedOnePercentLow = 0;
+            return;
+        }
+
+        int worstCount = Math.max(1, valid / 100);
+        long sum = 0;
+        for (int i = sorted.length - worstCount; i < sorted.length; i++) {
+            sum += sorted[i];
+        }
+        long averageNanos = sum / worstCount;
+        cachedOnePercentLow = averageNanos <= 0 ? 0 : (int) (1_000_000_000L / averageNanos);
     }
 }

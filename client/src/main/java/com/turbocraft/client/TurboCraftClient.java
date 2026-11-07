@@ -3,6 +3,7 @@ package com.turbocraft.client;
 import com.turbocraft.client.config.TurboCraftConfig;
 import com.turbocraft.client.event.InputTracker;
 import com.turbocraft.client.gui.ClientMenuScreen;
+import com.turbocraft.client.gui.HudEditorScreen;
 import com.turbocraft.client.hud.HudRenderer;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
@@ -41,6 +42,13 @@ public class TurboCraftClient implements ClientModInitializer {
 
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             InputTracker.onClientTick();
+
+            // safety: if a screen was closed by the game (teleport, death), never leave the HUD hidden
+            if (HudRenderer.suppressed && !(client.currentScreen instanceof HudEditorScreen)) {
+                HudRenderer.suppressed = false;
+            }
+
+            // works in-game AND on the title screen, so the HUD can be set up before joining a server
             while (menuKey.wasPressed()) {
                 if (client.currentScreen == null) {
                     client.setScreen(new ClientMenuScreen(null));

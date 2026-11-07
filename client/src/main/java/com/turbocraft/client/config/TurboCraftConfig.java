@@ -32,6 +32,7 @@ public class TurboCraftConfig {
     public boolean showKeystrokes = true;
     public boolean showCps = true;
     public boolean showPing = true;
+    public boolean showGraph = true;   // frame-time graph + 1% low
 
     // ---- HUD placement ----
     public int hudX = 4;

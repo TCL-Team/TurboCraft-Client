@@ -19,6 +19,17 @@ public class ClientMenuScreen extends Screen {
     private static final int BUTTON_HEIGHT = 20;
     private static final int GAP = 4;
 
+    /** Two half-width buttons under the toggles: setter + label. */
+    private int twoButtons(String leftLabel, Runnable left, String rightLabel, Runnable right,
+                           int centerX, int y) {
+        int half = BUTTON_WIDTH / 2 - 2;
+        this.addDrawableChild(ButtonWidget.builder(Text.literal(leftLabel), b -> left.run())
+                .dimensions(centerX - BUTTON_WIDTH / 2, y, half, BUTTON_HEIGHT).build());
+        this.addDrawableChild(ButtonWidget.builder(Text.literal(rightLabel), b -> right.run())
+                .dimensions(centerX + 2, y, half, BUTTON_HEIGHT).build());
+        return y + BUTTON_HEIGHT + GAP;
+    }
+
     private final Screen parent;
 
     public ClientMenuScreen(Screen parent) {
@@ -30,21 +41,30 @@ public class ClientMenuScreen extends Screen {
     protected void init() {
         TurboCraftConfig config = TurboCraftConfig.get();
         int centerX = this.width / 2;
-        int startY = this.height / 2 - 80;
+        int startY = this.height / 2 - 100;
 
         int y = startY;
         y = toggleButton("HUD: %s", config.hudEnabled, v -> config.hudEnabled = v, centerX, y);
         y = toggleButton("FPS counter: %s", config.showFps, v -> config.showFps = v, centerX, y);
+        y = toggleButton("Frame graph + 1%% low: %s", config.showGraph, v -> config.showGraph = v, centerX, y);
         y = toggleButton("CPS counter: %s", config.showCps, v -> config.showCps = v, centerX, y);
         y = toggleButton("Coordinates: %s", config.showCoords, v -> config.showCoords = v, centerX, y);
         y = toggleButton("Keystrokes: %s", config.showKeystrokes, v -> config.showKeystrokes = v, centerX, y);
         y = toggleButton("Ping: %s", config.showPing, v -> config.showPing = v, centerX, y);
         y = toggleButton("HUD background: %s", config.hudBackground, v -> config.hudBackground = v, centerX, y);
 
+        y += 2;
+        y = twoButtons("Move HUD…", () -> this.client.setScreen(new HudEditorScreen(this)),
+                "Reset pos", () -> {
+                    config.hudX = 4;
+                    config.hudY = 4;
+                    TurboCraftConfig.save();
+                }, centerX, y);
+
         this.addDrawableChild(ButtonWidget.builder(
                         Text.literal("Done"),
                         button -> this.close())
-                .dimensions(centerX - BUTTON_WIDTH / 2, y + 8, BUTTON_WIDTH, BUTTON_HEIGHT)
+                .dimensions(centerX - BUTTON_WIDTH / 2, y + 4, BUTTON_WIDTH, BUTTON_HEIGHT)
                 .build());
     }
 
