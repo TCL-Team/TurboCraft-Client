@@ -4,7 +4,7 @@ import com.turbocraft.client.TurboCraftClient;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.option.CloudRenderMode;
 import net.minecraft.client.option.GraphicsMode;
-import net.minecraft.client.option.ParticleStatus;
+import net.minecraft.client.option.ParticlesMode;
 
 /**
  * Real, measurable FPS work — no fake counters.
@@ -54,7 +54,7 @@ public final class PerformanceProfile {
      * Keeps the render distance at 6 — below that, chunks visibly pop in.
      */
     public static void applyPotato(MinecraftClient client) {
-        set(client, 6, 5, GraphicsMode.FAST, ParticleStatus.MINIMAL,
+        set(client, 6, 5, GraphicsMode.FAST, ParticlesMode.MINIMAL,
                 CloudRenderMode.OFF, 0, 0);
     }
 
@@ -63,18 +63,18 @@ public final class PerformanceProfile {
      * but a playable render distance.
      */
     public static void applyBalanced(MinecraftClient client) {
-        set(client, 8, 6, GraphicsMode.FAST, ParticleStatus.DECREASED,
+        set(client, 8, 6, GraphicsMode.FAST, ParticlesMode.DECREASED,
                 CloudRenderMode.OFF, 0, 0);
     }
 
     /** Back to the launcher's own values, in case a user wants the pretty version. */
     public static void applyVanilla(MinecraftClient client) {
-        set(client, 12, 10, GraphicsMode.FANCY, ParticleStatus.ALL,
+        set(client, 12, 10, GraphicsMode.FANCY, ParticlesMode.ALL,
                 CloudRenderMode.FANCY, 2, 4);
     }
 
     private static void set(MinecraftClient client, int viewDistance, int simulationDistance,
-                            GraphicsMode graphics, ParticleStatus particles,
+                            GraphicsMode graphics, ParticlesMode particles,
                             CloudRenderMode clouds, int biomeBlend, int mipmaps) {
         try {
             client.options.getViewDistance().setValue(viewDistance);
