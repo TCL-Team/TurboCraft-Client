@@ -8,6 +8,7 @@ on:
   workflow_dispatch:
   push:
     paths:
+      - "client/src/main/java/**"
       - "client/src/main/resources/**.mixins.json"
       - ".github/workflows/smoke.yml"
 
