@@ -78,7 +78,7 @@ public class TurboToggle extends PressableWidget {
         // switch
         int trackX = right - TRACK_W - 7;
         int trackY = y + (this.getHeight() - TRACK_H) / 2;
-        int trackColor = value ? Theme.accent() : 0x40FFFFFF;
+        int trackColor = value ? Theme.accent() : 0x33FFFFFF;
         context.fill(trackX, trackY, trackX + TRACK_W, trackY + TRACK_H, trackColor);
         context.fill(trackX, trackY, trackX + TRACK_W, trackY + 1, Theme.withAlpha(0xFFFFFFFF, 0x22));
         context.fill(trackX, trackY + TRACK_H - 1, trackX + TRACK_W, trackY + TRACK_H,
@@ -86,8 +86,9 @@ public class TurboToggle extends PressableWidget {
 
         int knobSize = TRACK_H - 4;
         int knobX = value ? trackX + TRACK_W - knobSize - 2 : trackX + 2;
-        context.fill(knobX, trackY + 2, knobX + knobSize, trackY + 2 + knobSize,
-                value ? Theme.textOnAccent() : 0xFFB0BCB4);
+        // The knob is a solid block: dark when the track is bright, light when the track is dim.
+        int knobColor = value ? Theme.textOnAccent() : 0xFFB0BCB4;
+        context.fill(knobX, trackY + 2, knobX + knobSize, trackY + 2 + knobSize, knobColor);
     }
 
     @Override

@@ -40,12 +40,32 @@ the card hides itself rather than sitting on top of a button.
 
 ![TurboCraft title screen](client/ci-artifacts/title-screen.jpg)
 
-**In-game**
-- HUD: FPS, CPS (L|R), coordinates, ping, keystrokes (WASD + space)
+**In-game menu** (Right Shift) — FastClient-style: left category rail
+(HUD / EDITOR / COSMETICS / LINKS / ABOUT) + right settings pane with neon toggle switches.
+
+**Cosmetics & themes** — 5 accent palettes (Neon Green, Cyan Ice, Blood Red, Void Purple, Gold) that
+recolour the title screen, HUD and menus instantly, no restart. Cape/trail slots reserved for the
+store; "Get capes & trails" opens the store.
+
+**HUD**
+- FPS, CPS (L|R), coordinates, ping, keystrokes (WASD + space)
 - Frame-time graph + **1% low** (smoothness, not just a big FPS number)
 - Right Shift menu with toggles, auto-saved to `config/turbocraft.json`
 - HUD editor: drag to move, ± to scale (0.5x–2x)
 - Client-side only — safe on vanilla servers (Hypixel, etc.)
+
+## Links (permanent, in source)
+
+`client/src/main/java/com/turbocraft/client/core/Links.java`:
+
+```java
+public static final String DISCORD = "https://discord.gg/turbocraft";  // ← edit this
+public static final String STORE   = "";
+public static final String GITHUB  = "https://github.com/TCL-Team/TurboCraft-Client";
+```
+
+These are compiled into the jar, so the Discord button always works — even if a user deletes
+`config/turbocraft.json`. The config can override them, but a blank value falls back here.
 
 ## Customising
 
@@ -53,7 +73,8 @@ the card hides itself rather than sitting on top of a button.
 ```json
 {
   "customTitleScreen": true,
-  "discordUrl": "https://discord.gg/turbocraft",
+  "accent": "neon",
+  "capeSkin": "", "trailSkin": "",
   "hudX": 4, "hudY": 4, "hudScale": 1.0,
   "showGraph": true
 }
