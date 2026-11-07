@@ -44,6 +44,8 @@ public class TurboCraftConfig {
     public boolean customTitleScreen = true;
     /** Discord invite opened by the title screen button. Change it in config/turbocraft.json. */
     public String discordUrl = "https://discord.gg/turbocraft";
+    /** Opened by the "Store / Cosmetics" button. Empty = button does nothing. */
+    public String storeUrl = "";
 
     // ---- Misc ----
     public boolean chatPrefix = true;

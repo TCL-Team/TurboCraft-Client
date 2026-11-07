@@ -96,10 +96,10 @@ public class ClientMenuScreen extends Screen {
     public void render(DrawContext context, int mouseX, int mouseY, float delta) {
         this.renderBackground(context);
         context.drawCenteredTextWithShadow(this.textRenderer, this.title,
-                this.width / 2, this.height / 2 - 110, 0xFF55FFFF);
+                this.width / 2, this.height / 2 - 110, Theme.ACCENT);
         context.drawCenteredTextWithShadow(this.textRenderer,
                 Text.literal("Right Shift to toggle • settings save automatically"),
-                this.width / 2, this.height - 24, 0xFFAAAAAA);
+                this.width / 2, this.height - 24, Theme.TEXT_DIM);
         super.render(context, mouseX, mouseY, delta);
     }
 

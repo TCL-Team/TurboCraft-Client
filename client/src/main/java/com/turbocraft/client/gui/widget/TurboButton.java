@@ -1,5 +1,6 @@
 package com.turbocraft.client.gui.widget;
 
+import com.turbocraft.client.gui.Theme;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.font.TextRenderer;
 import net.minecraft.client.gui.DrawContext;
@@ -8,23 +9,25 @@ import net.minecraft.client.gui.widget.PressableWidget;
 import net.minecraft.text.Text;
 
 /**
- * TurboCraft styled button.
+ * TurboCraft styled button — black glass with neon green accents.
  *
- * <p>Extends {@link PressableWidget} and overrides {@code renderWidget} completely, so we never touch
+ * <p>Extends {@link PressableWidget} and overrides {@code renderButton} completely, so we never touch
  * vanilla's 200x20 button texture atlas. Everything is drawn with {@code DrawContext#fill}, which is
  * the cheapest path on Android's GL4ES / MobileGlues renderers (no texture bindings per frame).
  */
 public class TurboButton extends PressableWidget {
-    private static final int ACCENT = 0xFF3DD6D0;
-    private static final int ACCENT_DIM = 0x553DD6D0;
-    private static final int FILL_NORMAL = 0xC80D1420;
-    private static final int FILL_HOVER = 0xF01A2734;
-    private static final int FILL_ACCENT = 0xF03DD6D0;
-    private static final int TEXT_NORMAL = 0xFFE8F4F4;
-    private static final int TEXT_ACCENT_BTN = 0xFF06141A;
+    public enum Style {
+        /** Default: black glass, green left key-line, white text. */
+        NORMAL,
+        /** Filled green — for the "main" action. */
+        ACCENT,
+        /** Muted red — for Quit. */
+        DANGER
+    }
 
     private final Runnable action;
-    private final boolean accent;
+    private final Style style;
+    private final String icon;
 
     /**
      * Text renderer captured at construction time — {@code PressableWidget} does not expose one, and
@@ -34,14 +37,24 @@ public class TurboButton extends PressableWidget {
     private final TextRenderer renderer;
 
     public TurboButton(int x, int y, int width, int height, Text message, Runnable action) {
-        this(x, y, width, height, message, action, false);
+        this(x, y, width, height, message, action, Style.NORMAL, "");
     }
 
     public TurboButton(int x, int y, int width, int height, Text message, Runnable action,
-                       boolean accent) {
+                       Style style) {
+        this(x, y, width, height, message, action, style, "");
+    }
+
+    /**
+     * @param icon drawn before the label, e.g. "SP", "MP", "ST". Plain ASCII on purpose — the default
+     *             font has no emoji, and a missing glyph shows up as a black square on phones.
+     */
+    public TurboButton(int x, int y, int width, int height, Text message, Runnable action,
+                       Style style, String icon) {
         super(x, y, width, height, message);
         this.action = action;
-        this.accent = accent;
+        this.style = style;
+        this.icon = icon;
         this.renderer = MinecraftClient.getInstance().textRenderer;
     }
 
@@ -55,49 +68,64 @@ public class TurboButton extends PressableWidget {
         boolean hovered = (mouseX >= this.getX() && mouseY >= this.getY()
                 && mouseX < this.getX() + this.getWidth()
                 && mouseY < this.getY() + this.getHeight()) && this.active;
+
         int x = this.getX();
         int y = this.getY();
         int right = x + this.getWidth();
         int bottom = y + this.getHeight();
-
-        int fill;
         int textColor;
+        int fill;
         int border;
 
+        switch (this.style) {
+            case ACCENT -> {
+                fill = hovered ? Theme.ACCENT_BRIGHT : Theme.ACCENT;
+                textColor = Theme.TEXT_ON_ACCENT;
+                border = Theme.ACCENT_BRIGHT;
+            }
+            case DANGER -> {
+                fill = hovered ? Theme.DANGER_HOVER : Theme.DANGER;
+                textColor = Theme.DANGER_TEXT;
+                border = 0x66FF6B5A;
+            }
+            default -> {
+                fill = hovered ? Theme.PANEL_HOVER : Theme.PANEL;
+                textColor = hovered ? Theme.ACCENT : Theme.TEXT;
+                border = hovered ? Theme.ACCENT : Theme.BORDER;
+            }
+        }
+
         if (!this.active) {
-            fill = 0x600D1420;
-            textColor = 0xFF6B7C86;
-            border = 0x406B7C86;
-        } else if (accent) {
-            fill = hovered ? 0xFF6BF0E9 : FILL_ACCENT;
-            textColor = TEXT_ACCENT_BTN;
-            border = 0xFFFFFFFF;
-        } else if (hovered) {
-            fill = FILL_HOVER;
-            textColor = 0xFFFFFFFF;
-            border = ACCENT;
-        } else {
-            fill = FILL_NORMAL;
-            textColor = TEXT_NORMAL;
-            border = ACCENT_DIM;
+            fill = Theme.PANEL;
+            textColor = Theme.TEXT_FAINT;
+            border = 0x2239FF14;
         }
 
         context.fill(x, y, right, bottom, fill);
 
-        // 1px border, drawn as four thin quads (no rounded corners: keeps it cheap and crisp)
+        // 1px border
         context.fill(x, y, right, y + 1, border);
         context.fill(x, bottom - 1, right, bottom, border);
         context.fill(x, y + 1, x + 1, bottom - 1, border);
         context.fill(right - 1, y + 1, right, bottom - 1, border);
 
-        // accent key-line on the left edge
+        // left key-line (the FastClient-ish detail)
         if (this.active) {
-            context.fill(x + 1, y + 1, x + 3, bottom - 1, accent ? 0xFFFFFFFF : ACCENT);
+            int keyLine = this.style == Style.ACCENT ? Theme.ACCENT_BRIGHT : Theme.ACCENT;
+            context.fill(x + 1, y + 1, x + 3, bottom - 1, keyLine);
         }
 
         int textY = y + (this.getHeight() - 8) / 2 + 1;
-        context.drawCenteredTextWithShadow(this.renderer, this.getMessage(),
-                x + this.getWidth() / 2, textY, textColor);
+        int labelWidth = this.renderer.getWidth(this.getMessage());
+        int iconWidth = this.icon.isEmpty() ? 0 : this.renderer.getWidth(this.icon) + 5;
+        int contentWidth = labelWidth + iconWidth;
+        int contentX = x + (this.getWidth() - contentWidth) / 2;
+
+        if (!this.icon.isEmpty()) {
+            context.drawTextWithShadow(this.renderer, this.icon, contentX, textY, textColor);
+        }
+        context.drawTextWithShadow(this.renderer, this.getMessage(),
+                contentX + iconWidth, textY, textColor);
     }
 
     @Override

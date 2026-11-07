@@ -10,50 +10,47 @@ import net.minecraft.client.gui.screen.multiplayer.MultiplayerScreen;
 import net.minecraft.client.gui.screen.option.OptionsScreen;
 import net.minecraft.client.gui.screen.world.SelectWorldScreen;
 import net.minecraft.text.Text;
+import net.minecraft.util.Identifier;
 import net.minecraft.util.Util;
 
 import java.net.URI;
 
 /**
- * TurboCraft custom title screen — replaces vanilla's {@code TitleScreen} when enabled in config.
+ * TurboCraft custom title screen — FastClient/Lunar-style layout, neon green on black.
  *
- * <p>Visual approach is Android-first: no panorama (vanilla renders a 6-face cubemap every frame,
- * which is genuinely expensive on a phone), no blur, no textured buttons. Instead a vertical gradient
- * built from ~28 {@code fill} quads plus flat-colour buttons.
+ * <p>Layout: full-bleed background image with a dark overlay, small logo + wordmark, centred stacked
+ * button column, Quit at the bottom, Discord card bottom-right, version line under the column.
  *
- * <p><b>Layout is fully responsive.</b> Gui scale on a phone can leave as little as ~250 logical
- * pixels of height, so every vertical size is derived from {@link #height} and the whole stack
- * shrinks (and the logo drops to 1x) when space runs out. Fixed offsets is exactly how the first
- * version ended up drawing the logo off-screen.
+ * <p>Android notes: the background is <b>static</b> (vanilla's panorama re-renders a 6-face cubemap
+ * every frame, which is genuinely expensive on a phone), and the darkening overlay + all panels are
+ * {@code fill} quads, not textures.
  */
 public class TurboCraftTitleScreen extends Screen {
-    private static final int ACCENT = 0xFF3DD6D0;
-    private static final int PANEL = 0xB80A0F16;
-    private static final int MUTED = 0xFF9FB3BC;
-    private static final int FAINT = 0xFF607078;
-
-    private static final int BG_TOP = 0xFF0A1420;
-    private static final int BG_BOTTOM = 0xFF04161A;
-    private static final int BAND = 0x143DD6D0;
+    private static final Identifier BACKGROUND =
+            new Identifier(TurboCraftClient.MOD_ID, "textures/gui/title_background.png");
 
     private static final String[] TAGLINES = {
+            "neon green. black glass. no lag.",
             "HUD that actually tells the truth",
             "1% low > big FPS number",
-            "Made for phones, not ported to them",
-            "Right Shift opens the good stuff",
-            "Sodium in, lag out",
+            "made for phones, not ported to them",
+            "right shift opens the good stuff",
     };
 
     private final String tagline = TAGLINES[(int) (Math.random() * TAGLINES.length)];
 
     // ---- layout, computed in init() ----
-    private int panelX;
-    private int panelY;
-    private int panelW;
-    private int panelH;
+    private int btnW;
     private int btnH;
-    private int gap;
-    private int logoScale;
+    private int colX;
+    private int colTop;
+
+    private int discordX;
+    private int discordY;
+    private int discordW;
+    private int discordH;
+
+    private int logoY;
 
     public TurboCraftTitleScreen() {
         super(Text.literal("TurboCraft"));
@@ -63,186 +60,217 @@ public class TurboCraftTitleScreen extends Screen {
 
     @Override
     protected void init() {
-        int rows = 5;
-        btnH = 20;
-        gap = 4;
+        btnW = Math.min(236, this.width - 40);
+        btnH = this.height < 300 ? 18 : 22;
+        int gap = btnH < 20 ? 3 : 4;
 
-        // shrink vertically if the logical resolution is small (common on phones with Gui scale 3+)
-        int blockH = rows * btnH + (rows - 1) * gap;
-        int brandSpace = 44;
-        if (blockH + brandSpace + 40 > this.height) {
-            btnH = 16;
-            gap = 3;
-            blockH = rows * btnH + (rows - 1) * gap;
-        }
-        if (blockH + brandSpace + 40 > this.height) {
-            brandSpace = 24;
-        }
+        // 5 rows: singleplayer, multiplayer, cosmetics, store, quit -> quit is separated
+        int rows = 4;
+        colTop = this.height / 2 - (rows * btnH + (rows - 1) * gap) / 2 + 6;
+        colTop = Math.max(74, colTop);
+        colX = this.width / 2 - btnW / 2;
 
-        // 2x logo whenever at least ~46 logical px fit above the panel, else 1x
-        panelW = Math.min(232, this.width - 24);
-        int padding = 12;
-        panelH = blockH + padding * 2;
-        panelX = this.width / 2 - panelW / 2;
-        panelY = Math.max(brandSpace + 4, (this.height - panelH) / 2 + 6);
+        logoY = Math.max(16, colTop - 58);
 
-        // 2x logo whenever at least ~46 logical px fit above the panel, else 1x
-        logoScale = (panelY - 6) >= 46 ? 2 : 1;
-
-        int x = this.width / 2 - (panelW - padding * 2) / 2;
-        int innerW = panelW - padding * 2;
-        int y = panelY + padding;
-
-        this.addDrawableChild(new TurboButton(x, y, innerW, btnH,
+        int y = colTop;
+        this.addDrawableChild(new TurboButton(colX, y, btnW, btnH,
                 Text.literal("Singleplayer"),
-                () -> this.client.setScreen(new SelectWorldScreen(this))));
+                () -> this.client.setScreen(new SelectWorldScreen(this)),
+                TurboButton.Style.NORMAL, "SP"));
         y += btnH + gap;
 
-        this.addDrawableChild(new TurboButton(x, y, innerW, btnH,
+        this.addDrawableChild(new TurboButton(colX, y, btnW, btnH,
                 Text.literal("Multiplayer"),
-                () -> this.client.setScreen(new MultiplayerScreen(this))));
+                () -> this.client.setScreen(new MultiplayerScreen(this)),
+                TurboButton.Style.NORMAL, "MP"));
         y += btnH + gap;
 
-        this.addDrawableChild(new TurboButton(x, y, innerW, btnH,
+        this.addDrawableChild(new TurboButton(colX, y, btnW, btnH,
                 Text.literal("TurboCraft Settings"),
-                () -> this.client.setScreen(new ClientMenuScreen(this)), true));
-        y += btnH + gap + 2;
+                () -> this.client.setScreen(new ClientMenuScreen(this)),
+                TurboButton.Style.NORMAL, ">_"));
+        y += btnH + gap;
 
-        int halfW = innerW / 2 - 2;
-        this.addDrawableChild(new TurboButton(x, y, halfW, btnH,
-                Text.literal("Options"),
-                () -> this.client.setScreen(new OptionsScreen(this, this.client.options))));
-        this.addDrawableChild(new TurboButton(x + innerW - halfW, y, halfW, btnH,
-                Text.literal("Discord"),
-                this::openDiscord));
-        y += btnH + gap + 2;
+        this.addDrawableChild(new TurboButton(colX, y, btnW, btnH,
+                Text.literal("Store / Cosmetics"),
+                this::openStore,
+                TurboButton.Style.ACCENT, "ST"));
 
-        this.addDrawableChild(new TurboButton(x, y, innerW, btnH,
+        // Quit, floating at the bottom of the column
+        int quitY = Math.min(this.height - 46, y + btnH + 26);
+        this.addDrawableChild(new TurboButton(colX, quitY, btnW, btnH,
                 Text.literal("Quit Game"),
-                () -> this.client.scheduleStop()));
+                () -> this.client.scheduleStop(),
+                TurboButton.Style.DANGER));
+
+        // Discord card, bottom-right
+        discordW = 128;
+        discordH = 66;
+        discordX = this.width - discordW - 14;
+        discordY = this.height - discordH - 14;
+        if (discordY < quitY + btnH + 6) {
+            // very small screens: shrink the card instead of overlapping the buttons
+            discordH = 48;
+            discordY = this.height - discordH - 10;
+        }
+    }
+
+    private void openStore() {
+        openUrl(TurboCraftConfig.get().storeUrl);
     }
 
     private void openDiscord() {
-        String url = TurboCraftConfig.get().discordUrl;
+        openUrl(TurboCraftConfig.get().discordUrl);
+    }
+
+    private void openUrl(String url) {
         if (url == null || url.isBlank()) return;
         try {
             Util.getOperatingSystem().open(URI.create(url));
         } catch (Exception e) {
-            TurboCraftClient.LOGGER.warn("[TurboCraft] Could not open Discord link: {}", url, e);
+            TurboCraftClient.LOGGER.warn("[TurboCraft] Could not open link: {}", url, e);
         }
     }
 
     // ------------------------------------------------------------------ rendering
 
-    /** We paint our own background, so vanilla's dirt/blur/panorama is disabled. */
     @Override
     public void renderBackground(DrawContext context) {
-        // intentionally empty — see render()
+        // intentionally empty — we paint our own background in render()
     }
 
     @Override
     public void render(DrawContext context, int mouseX, int mouseY, float delta) {
-        drawGradient(context);
+        drawBackground(context);
         drawBranding(context);
-        drawPanel(context);
-        super.render(context, mouseX, mouseY, delta); // widgets
+        super.render(context, mouseX, mouseY, delta); // buttons
+        drawVersionLine(context);
+        drawDiscordCard(context, mouseX, mouseY);
         drawFooter(context);
     }
 
-    /** Vertical gradient: 28 strips. Cheap enough for a 30 FPS phone GPU. */
-    private void drawGradient(DrawContext context) {
-        int strips = 28;
-        for (int i = 0; i < strips; i++) {
-            int y0 = this.height * i / strips;
-            int y1 = this.height * (i + 1) / strips;
-            context.fill(0, y0, this.width, y1, lerpColor(BG_TOP, BG_BOTTOM, i / (float) (strips - 1)));
+    /** Static image, cover-fit, plus vertical darkening so text stays readable. */
+    private void drawBackground(DrawContext context) {
+        int imgW = 1280;
+        int imgH = 720;
+        float scale = Math.max((float) this.width / imgW, (float) this.height / imgH);
+        int drawW = Math.round(imgW * scale);
+        int drawH = Math.round(imgH * scale);
+        int drawX = (this.width - drawW) / 2;
+        int drawY = (this.height - drawH) / 2;
+
+        context.drawTexture(BACKGROUND, drawX, drawY, 0, 0, drawW, drawH, imgW, imgH);
+
+        // darken (and add a green tint) in horizontal bands — cheap alpha compositing
+        int bands = 18;
+        for (int i = 0; i < bands; i++) {
+            int y0 = this.height * i / bands;
+            int y1 = this.height * (i + 1) / bands;
+            float t = i / (float) (bands - 1);
+            int alpha = (int) (0x30 + 0x60 * t);
+            context.fill(0, y0, this.width, y1, (alpha << 24));
         }
-
-        // slow drifting highlight band — 2 quads, gives the screen life without GPU cost
-        float phase = (System.currentTimeMillis() % 12000L) / 12000f;
-        int bandY = (int) (this.height * (phase * 1.4f - 0.2f));
-        int bandH = Math.max(40, this.height / 6);
-        context.fill(0, bandY, this.width, bandY + bandH, BAND);
-        context.fill(0, bandY + bandH, this.width, bandY + bandH + 20, 0x0C3DD6D0);
+        context.fill(0, 0, this.width, this.height, 0x0A39FF14);
     }
 
-    /** Card behind the buttons. */
-    private void drawPanel(DrawContext context) {
-        context.fill(panelX, panelY, panelX + panelW, panelY + panelH, PANEL);
-        context.fill(panelX, panelY, panelX + panelW, panelY + 1, 0x803DD6D0);
-        context.fill(panelX, panelY + panelH - 1, panelX + panelW, panelY + panelH, 0x303DD6D0);
-        context.fill(panelX, panelY, panelX + 1, panelY + panelH, 0x303DD6D0);
-        context.fill(panelX + panelW - 1, panelY, panelX + panelW, panelY + panelH, 0x303DD6D0);
-    }
-
-    /** Logo + tagline, always above the panel and always fully on screen. */
+    /** Logo glyph + wordmark + tagline. */
     private void drawBranding(DrawContext context) {
         int centerX = this.width / 2;
-        String logo = "TURBOCRAFT";
 
-        int logoH = this.textRenderer.fontHeight * logoScale;
-        int logoW = this.textRenderer.getWidth(logo) * logoScale;
+        // logo mark: green cube outline drawn from fills (no texture, scales cleanly)
+        int markSize = 18;
+        int markX = centerX - 62;
+        drawCubeMark(context, markX, logoY, markSize);
 
-        // place the logo so it ends ~8px above the panel, but never above y=4
-        int logoY = panelY - 10 - logoH;
-        logoY = Math.max(4, logoY);
+        context.getMatrices().push();
+        context.getMatrices().translate(markX + markSize + 8, logoY + 2, 0);
+        context.getMatrices().scale(1.5f, 1.5f, 1.0f);
+        context.drawText(this.textRenderer, "TURBOCRAFT", 0, 0, Theme.ACCENT, true);
+        context.getMatrices().pop();
 
-        int logoX = centerX - logoW / 2;
-
-        if (logoScale > 1) {
-            context.getMatrices().push();
-            context.getMatrices().translate(logoX, logoY, 0);
-            context.getMatrices().scale(logoScale, logoScale, 1.0f);
-            context.drawText(this.textRenderer, logo, 1, 1, 0x403DD6D0, false);
-            context.drawText(this.textRenderer, logo, -1, -1, 0x403DD6D0, false);
-            context.drawText(this.textRenderer, logo, 0, 0, ACCENT, true);
-            context.getMatrices().pop();
-        } else {
-            context.drawText(this.textRenderer, logo, logoX, logoY, ACCENT, true);
-        }
-
-        // tagline only when it genuinely fits between logo and panel
-        int taglineY = logoY + logoH + 3;
-        if (taglineY + 9 <= panelY - 2) {
-            context.drawCenteredTextWithShadow(this.textRenderer, Text.literal(this.tagline),
-                    centerX, taglineY, MUTED);
-        }
+        context.drawCenteredTextWithShadow(this.textRenderer, Text.literal(tagline),
+                centerX, logoY + 30, Theme.TEXT_DIM);
     }
 
-    private void drawFooter(DrawContext context) {
+    /** A blocky cube outline + inner highlight, all from {@code fill} quads. */
+    private static void drawCubeMark(DrawContext context, int x, int y, int size) {
+        // outer square
+        context.fill(x, y, x + size, y + 1, Theme.ACCENT);
+        context.fill(x, y + size - 1, x + size, y + size, Theme.ACCENT);
+        context.fill(x, y + 1, x + 1, y + size - 1, Theme.ACCENT);
+        context.fill(x + size - 1, y + 1, x + size, y + size - 1, Theme.ACCENT);
+
+        // top face + right face suggestion
+        context.fill(x + 4, y + 4, x + size - 4, y + 5, Theme.ACCENT_DIM);
+        context.fill(x + size - 5, y + 4, x + size - 4, y + size - 4, Theme.ACCENT_DIM);
+        context.fill(x + 4, y + size - 5, x + size - 4, y + size - 4, Theme.ACCENT_FAINT);
+    }
+
+    private void drawVersionLine(DrawContext context) {
         String clientVersion = FabricLoader.getInstance().getModContainer(TurboCraftClient.MOD_ID)
                 .map(c -> c.getMetadata().getVersion().getFriendlyString())
                 .orElse("dev");
         // FabricLoader's "minecraft" container is the only reliable source here:
         // MinecraftClient#getGameVersion() returns the launcher profile name ("Fabric") in dev.
-        // Version looks like "1.20.1+build.10", so keep only the release part.
         String mcVersion = FabricLoader.getInstance().getModContainer("minecraft")
                 .map(c -> c.getMetadata().getVersion().getFriendlyString())
-                .orElse("?");
+                .orElse("1.20.1");
         int plus = mcVersion.indexOf('+');
         if (plus > 0) mcVersion = mcVersion.substring(0, plus);
-        if (mcVersion.isBlank()) mcVersion = "1.20.1";
 
-        int footerTop = this.height - 24;
-        context.drawTextWithShadow(this.textRenderer,
-                Text.literal("Minecraft " + mcVersion + "  |  Fabric"), 4, footerTop, MUTED);
-        context.drawTextWithShadow(this.textRenderer,
-                Text.literal("TurboCraft Client " + clientVersion), 4, footerTop + 10, ACCENT);
+        Text line = Text.literal("TurboCraft " + clientVersion + " (mc " + mcVersion + ")");
+        context.drawCenteredTextWithShadow(this.textRenderer, line,
+                this.width / 2, this.height - 18, Theme.TEXT_FAINT);
+    }
 
-        Text disclaimer = Text.literal("Not affiliated with Mojang or Microsoft");
-        context.drawTextWithShadow(this.textRenderer, disclaimer,
-                this.width - this.textRenderer.getWidth(disclaimer) - 4, footerTop + 10, FAINT);
+    /** Discord promo card — clickable region, not a widget, so it can sit anywhere. */
+    private void drawDiscordCard(DrawContext context, int mouseX, int mouseY) {
+        boolean hovered = mouseX >= discordX && mouseX < discordX + discordW
+                && mouseY >= discordY && mouseY < discordY + discordH;
+
+        context.fill(discordX, discordY, discordX + discordW, discordY + discordH,
+                hovered ? Theme.PANEL_HOVER : Theme.PANEL_SOLID);
+        int border = hovered ? Theme.ACCENT : Theme.BORDER;
+        context.fill(discordX, discordY, discordX + discordW, discordY + 1, border);
+        context.fill(discordX, discordY + discordH - 1, discordX + discordW, discordY + discordH, border);
+        context.fill(discordX, discordY + 1, discordX + 1, discordY + discordH - 1, border);
+        context.fill(discordX + discordW - 1, discordY + 1, discordX + discordW, discordY + discordH - 1, border);
+
+        // simple "chat bubble" glyph built from fills
+        int iconSize = Math.min(22, discordH - 34);
+        int iconX = discordX + (discordW - iconSize) / 2;
+        int iconY = discordY + 8;
+        context.fill(iconX, iconY, iconX + iconSize, iconY + iconSize - 4, Theme.ACCENT);
+        context.fill(iconX + 4, iconY + iconSize - 4, iconX + iconSize - 4, iconY + iconSize, Theme.ACCENT);
+        context.fill(iconX + 5, iconY + 5, iconX + 7, iconY + 7, Theme.TEXT_ON_ACCENT);
+        context.fill(iconX + 10, iconY + 5, iconX + 12, iconY + 7, Theme.TEXT_ON_ACCENT);
+        context.fill(iconX + 15, iconY + 5, iconX + 17, iconY + 7, Theme.TEXT_ON_ACCENT);
+
+        context.drawCenteredTextWithShadow(this.textRenderer, Text.literal("JOIN OUR DISCORD"),
+                discordX + discordW / 2, discordY + iconSize + 12, Theme.ACCENT);
+        context.drawCenteredTextWithShadow(this.textRenderer, Text.literal("CLICK HERE"),
+                discordX + discordW / 2, discordY + iconSize + 21, Theme.TEXT_DIM);
+    }
+
+    private void drawFooter(DrawContext context) {
+        context.drawTextWithShadow(this.textRenderer,
+                Text.literal("Not affiliated with Mojang or Microsoft"),
+                6, this.height - 11, Theme.TEXT_FAINT);
+    }
+
+    // ------------------------------------------------------------------ input
+
+    @Override
+    public boolean mouseClicked(double mouseX, double mouseY, int button) {
+        if (button == 0 && mouseX >= discordX && mouseX < discordX + discordW
+                && mouseY >= discordY && mouseY < discordY + discordH) {
+            openDiscord();
+            return true;
+        }
+        return super.mouseClicked(mouseX, mouseY, button);
     }
 
     // ------------------------------------------------------------------ behaviour
-
-    private static int lerpColor(int from, int to, float t) {
-        int a = (int) (((from >>> 24) & 0xFF) * (1 - t) + ((to >>> 24) & 0xFF) * t);
-        int r = (int) (((from >> 16) & 0xFF) * (1 - t) + ((to >> 16) & 0xFF) * t);
-        int g = (int) (((from >> 8) & 0xFF) * (1 - t) + ((to >> 8) & 0xFF) * t);
-        int b = (int) ((from & 0xFF) * (1 - t) + (to & 0xFF) * t);
-        return (a << 24) | (r << 16) | (g << 8) | b;
-    }
 
     @Override
     public void close() {

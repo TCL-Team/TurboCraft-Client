@@ -2,6 +2,7 @@ package com.turbocraft.client.hud;
 
 import com.turbocraft.client.config.TurboCraftConfig;
 import com.turbocraft.client.event.InputTracker;
+import com.turbocraft.client.gui.Theme;
 import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
@@ -30,10 +31,10 @@ public final class HudRenderer {
     public static final int GRAPH_HEIGHT = 14;
 
     private static final int PADDING = 3;
-    private static final int WHITE = 0xFFFFFFFF;
-    private static final int BG = 0x90000000;
-    private static final int ACCENT = 0xFF55FFFF;
-    private static final int MUTED = 0xFFAAAAAA;
+    private static final int WHITE = Theme.TEXT;
+    private static final int BG = Theme.PANEL;
+    private static final int ACCENT = Theme.ACCENT;
+    private static final int MUTED = Theme.TEXT_DIM;
 
     // ---- frame timing (for FPS, graph and 1% low) ----
     private static final int SAMPLES = 240;
@@ -179,7 +180,7 @@ public final class HudRenderer {
             double ms = preview ? 16.0 + (i % 7) : nanos / 1_000_000.0;
             int barHeight = (int) Math.round(GRAPH_HEIGHT - Math.min(GRAPH_HEIGHT, ms / 2.0));
             barHeight = Math.max(1, Math.min(GRAPH_HEIGHT, barHeight));
-            int color = ms > 33 ? 0xFFFF5555 : ms > 20 ? 0xFFFFAA00 : ACCENT;
+            int color = ms > 33 ? 0xFFFF4D4D : ms > 20 ? 0xFFFFC436 : ACCENT;
             context.fill(x + 1 + i, y + 1 + (GRAPH_HEIGHT - barHeight),
                     x + 2 + i, y + 1 + GRAPH_HEIGHT, color);
         }
@@ -209,10 +210,10 @@ public final class HudRenderer {
     private static void drawKey(DrawContext context, MinecraftClient client, int x, int y,
                                 int width, int height, String label, boolean pressed,
                                 TurboCraftConfig config) {
-        int bg = pressed ? 0xB0FFFFFF : (config.hudBackground ? 0x90000000 : 0x40000000);
+        int bg = pressed ? Theme.ACCENT : (config.hudBackground ? Theme.PANEL : Theme.ACCENT_FAINT);
         context.fill(x, y, x + width, y + height, bg);
         if (!label.isEmpty()) {
-            int textColor = pressed ? 0xFF000000 : WHITE;
+            int textColor = pressed ? Theme.TEXT_ON_ACCENT : WHITE;
             int textX = x + (width - client.textRenderer.getWidth(label)) / 2;
             int textY = y + (height - 8) / 2 + 1;
             context.drawText(client.textRenderer, label, textX, textY, textColor, true);
