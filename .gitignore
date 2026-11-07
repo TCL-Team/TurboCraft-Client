@@ -1,0 +1,12 @@
+# Build output
+client/build/
+client/.gradle/
+client/run/
+*.iml
+.idea/
+.gradle/
+build/
+
+# OS junk
+.DS_Store
+Thumbs.db

@@ -1,0 +1,62 @@
+name: Build TurboCraft Client
+
+on:
+  push:
+    branches:
+      - "arena/**"
+      - main
+    paths:
+      - "client/**"
+      - ".github/workflows/build.yml"
+  pull_request:
+    paths:
+      - "client/**"
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build mod jar
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v3
+
+      - name: Build with Gradle
+        working-directory: client
+        run: |
+          chmod +x gradlew
+          ./gradlew build --stacktrace
+
+      - name: Upload jar as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: turbocraft-client-jar
+          path: client/build/libs/*.jar
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Attach jar to a rolling release
+        if: github.event_name == 'push'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: latest-build
+          name: TurboCraft Client (latest build)
+          prerelease: true
+          body: |
+            Auto-built from `${{ github.sha }}` on `${{ github.ref_name }}`.
+
+            Download `turbocraft-client-*.jar` (not `-sources.jar`) and drop it into
+            your launcher's `mods/` folder.
+          files: client/build/libs/turbocraft-client-*.jar

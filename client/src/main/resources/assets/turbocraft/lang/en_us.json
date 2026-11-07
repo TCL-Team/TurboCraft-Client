@@ -1,0 +1,19 @@
+{
+  "key.turbocraft.menu": "TurboCraft Menu",
+  "key.categories.turbocraft": "TurboCraft Client",
+
+  "turbocraft.menu.title": "TurboCraft Client",
+  "turbocraft.menu.hud": "HUD: %s",
+  "turbocraft.menu.fps": "FPS counter: %s",
+  "turbocraft.menu.coords": "Coordinates: %s",
+  "turbocraft.menu.keystrokes": "Keystrokes: %s",
+  "turbocraft.menu.cps": "CPS counter: %s",
+  "turbocraft.menu.ping": "Ping: %s",
+  "turbocraft.menu.done": "Done",
+
+  "turbocraft.state.on": "ON",
+  "turbocraft.state.off": "OFF",
+
+  "turbocraft.hud.ping": "%sms",
+  "turbocraft.hud.coords": "XYZ: %s / %s / %s"
+}

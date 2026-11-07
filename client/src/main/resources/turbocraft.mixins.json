@@ -1,0 +1,11 @@
+{
+  "required": true,
+  "package": "com.turbocraft.client.mixin",
+  "compatibilityLevel": "JAVA_17",
+  "client": [
+    "MouseMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}
