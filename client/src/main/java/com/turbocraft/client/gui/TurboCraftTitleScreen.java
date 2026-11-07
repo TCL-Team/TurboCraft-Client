@@ -75,7 +75,7 @@ public class TurboCraftTitleScreen extends Screen {
         int blockH = rows * btnH + (rows - 1) * gap;
         colTop = Math.max(64, this.height / 2 - blockH / 2 - 4);
         colX = this.width / 2 - btnW / 2;
-        logoY = Math.max(10, colTop - 52);
+        logoY = Math.max(8, colTop - 58);
 
         int y = colTop;
         this.addDrawableChild(new TurboButton(colX, y, btnW, btnH,
@@ -176,7 +176,7 @@ public class TurboCraftTitleScreen extends Screen {
             int y0 = this.height * i / bands;
             int y1 = this.height * (i + 1) / bands;
             float t = i / (float) (bands - 1);
-            int alpha = (int) (0x10 + 0x3C * t);
+            int alpha = (int) (0x08 + 0x2A * t);
             context.fill(0, y0, this.width, y1, alpha << 24);
         }
         // faint neon wash from the top-left corner
@@ -188,18 +188,18 @@ public class TurboCraftTitleScreen extends Screen {
         int centerX = this.width / 2;
 
         // logo mark: green cube outline drawn from fills (no texture, scales cleanly)
-        int markSize = 18;
-        int markX = centerX - 62;
-        drawCubeMark(context, markX, logoY, markSize);
+        int markSize = 20;
+        int markX = centerX - 78;
+        drawCubeMark(context, markX, logoY + 2, markSize);
 
         context.getMatrices().push();
-        context.getMatrices().translate(markX + markSize + 8, logoY + 2, 0);
-        context.getMatrices().scale(1.5f, 1.5f, 1.0f);
+        context.getMatrices().translate(markX + markSize + 10, logoY, 0);
+        context.getMatrices().scale(1.9f, 1.9f, 1.0f);
         context.drawText(this.textRenderer, "TURBOCRAFT", 0, 0, Theme.ACCENT, true);
         context.getMatrices().pop();
 
         context.drawCenteredTextWithShadow(this.textRenderer, Text.literal(tagline),
-                centerX, logoY + 30, Theme.TEXT_DIM);
+                centerX, logoY + 34, Theme.TEXT_DIM);
     }
 
     /** A blocky cube outline + inner highlight, all from {@code fill} quads. */
