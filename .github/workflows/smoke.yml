@@ -44,6 +44,17 @@ jobs:
           Xvfb :99 -screen 0 1280x720x24 > /tmp/xvfb.log 2>&1 &
           sleep 2
 
+          # skip the first-launch accessibility onboarding so the screenshot lands on the real title screen
+          mkdir -p run
+          if [ -f run/options.txt ]; then
+            grep -q "^onboardAccessibility" run/options.txt \
+              && sed -i 's/^onboardAccessibility:.*/onboardAccessibility:false/' run/options.txt \
+              || echo "onboardAccessibility:false" >> run/options.txt
+          else
+            printf 'onboardAccessibility:false\nnarrator:0\n' > run/options.txt
+          fi
+          cat run/options.txt
+
           # launch in background so we can screenshot while the game is alive
           DISPLAY=:99 ./gradlew runClient --console=plain --no-daemon > /tmp/client.log 2>&1 &
           GAME_PID=$!
@@ -58,7 +69,7 @@ jobs:
           done
 
           # give the title screen a few frames to render
-          sleep 12
+          sleep 18
           DISPLAY=:99 import -window root /tmp/title.png 2>/dev/null || true
 
           # coarse colour grid so CI logs show what was actually drawn
