@@ -72,7 +72,7 @@ public class ClientMenuScreen extends Screen {
 
     @Override
     public void render(DrawContext context, int mouseX, int mouseY, float delta) {
-        this.renderBackground(context, mouseX, mouseY, delta);
+        this.renderBackground(context);
         context.drawCenteredTextWithShadow(this.textRenderer, this.title,
                 this.width / 2, this.height / 2 - 110, 0xFF55FFFF);
         context.drawCenteredTextWithShadow(this.textRenderer,
