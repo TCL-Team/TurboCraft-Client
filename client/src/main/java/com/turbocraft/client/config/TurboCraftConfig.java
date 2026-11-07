@@ -33,6 +33,7 @@ public class TurboCraftConfig {
     public boolean showCps = true;
     public boolean showPing = true;
     public boolean showGraph = true;   // frame-time graph + 1% low
+    public boolean showFrameTime = true; // "FT: 12.4ms" — the number that explains low FPS
 
     // ---- HUD placement ----
     public int hudX = 4;

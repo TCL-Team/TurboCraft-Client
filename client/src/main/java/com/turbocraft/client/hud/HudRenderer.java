@@ -45,6 +45,7 @@ public final class HudRenderer {
     private static int fpsFrames;
     private static int cachedFps;
     private static int cachedOnePercentLow;
+    private static float cachedFrameMs;
 
     /** Set while the HUD editor is open so the live HUD does not draw twice. */
     public static boolean suppressed;
@@ -85,7 +86,12 @@ public final class HudRenderer {
         int cursorY = 0;
 
         if (config.showFps) {
-            drawLine(context, client, 0, cursorY, "FPS: " + (preview ? 144 : cachedFps), config);
+            String fpsLine = "FPS: " + (preview ? 144 : cachedFps);
+            if (config.showFrameTime) {
+                float ms = preview ? 6.9f : cachedFrameMs;
+                fpsLine += String.format("  %.1fms", ms);
+            }
+            drawLine(context, client, 0, cursorY, fpsLine, config);
             cursorY += LINE;
         }
 
@@ -135,7 +141,7 @@ public final class HudRenderer {
         int height = 0;
 
         if (config.showFps) {
-            width = Math.max(width, textWidth(client, "FPS: 144") + PADDING * 2);
+            width = Math.max(width, textWidth(client, "FPS: 144  6.9ms") + PADDING * 2);
             height += LINE;
         }
         if (config.showGraph) {
@@ -247,6 +253,7 @@ public final class HudRenderer {
         long elapsed = System.currentTimeMillis() - fpsWindowStart;
         if (elapsed >= 1000L) {
             cachedFps = (int) (fpsFrames * 1000L / elapsed);
+            cachedFrameMs = elapsed / (float) Math.max(1, fpsFrames);
             fpsFrames = 0;
             fpsWindowStart = System.currentTimeMillis();
             recomputeOnePercentLow();

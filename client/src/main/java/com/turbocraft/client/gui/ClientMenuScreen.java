@@ -5,6 +5,7 @@ import com.turbocraft.client.core.Links;
 import com.turbocraft.client.gui.widget.TurboButton;
 import com.turbocraft.client.gui.widget.TurboToggle;
 import com.turbocraft.client.hud.HudRenderer;
+import com.turbocraft.client.perf.PerformanceProfile;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.text.Text;
@@ -22,6 +23,7 @@ import java.net.URI;
 public class ClientMenuScreen extends Screen {
     private enum Tab {
         HUD("HUD", "FPS, CPS, keystrokes, coords"),
+        PERF("PERF", "One-click FPS profiles"),
         EDITOR("EDITOR", "Drag & scale the HUD"),
         COSMETICS("COSMETICS", "Capes, trails, accents"),
         LINKS("LINKS", "Discord, store, source"),
@@ -114,6 +116,29 @@ public class ClientMenuScreen extends Screen {
                 y = toggle("Ping", null, c.showPing, v -> c.showPing = v, paneX, y, rowW, rowH);
                 y = toggle("HUD background", null, c.hudBackground, v -> c.hudBackground = v,
                         paneX, y, rowW, rowH);
+            }
+            case PERF -> {
+                int half = rowW / 2 - 2;
+                this.addDrawableChild(new TurboButton(paneX, y, rowW, 20,
+                        Text.literal("MAX FPS  (potato mode)"),
+                        () -> PerformanceProfile.applyPotato(this.client),
+                        TurboButton.Style.ACCENT));
+                y += 24;
+                this.addDrawableChild(new TurboButton(paneX, y, half, 18,
+                        Text.literal("Balanced"),
+                        () -> PerformanceProfile.applyBalanced(this.client)));
+                this.addDrawableChild(new TurboButton(paneX + rowW - half, y, half, 18,
+                        Text.literal("Vanilla"), () -> PerformanceProfile.applyVanilla(this.client)));
+                y += 24;
+
+                this.addDrawableChild(new TurboButton(paneX, y, rowW, 16,
+                        Text.literal("Toggle frame time in HUD"),
+                        () -> {
+                            TurboCraftConfig cc = config();
+                            cc.showFrameTime = !cc.showFrameTime;
+                            TurboCraftConfig.save();
+                            this.clearAndInit();
+                        }));
             }
             case EDITOR -> {
                 int half = rowW / 2 - 2;
@@ -251,6 +276,9 @@ public class ClientMenuScreen extends Screen {
         if (this.tab == Tab.COSMETICS) {
             drawSwatches(context);
         }
+        if (this.tab == Tab.PERF) {
+            drawPerfInfo(context);
+        }
 
         super.render(context, mouseX, mouseY, delta);
 
@@ -275,6 +303,23 @@ public class ClientMenuScreen extends Screen {
             context.drawTextWithShadow(this.textRenderer, Text.literal(line), x, y,
                     line.startsWith("TurboCraft") ? Theme.accent() : Theme.TEXT_DIM);
             y += 10;
+            if (y > paneY + paneH - 10) break;
+        }
+    }
+
+    /** Live memory + launcher advice. Reads the JVM, so it reports what the launcher actually set. */
+    private void drawPerfInfo(DrawContext context) {
+        Runtime rt = Runtime.getRuntime();
+        long maxMb = rt.maxMemory() / (1024L * 1024L);
+        long usedMb = (rt.totalMemory() - rt.freeMemory()) / (1024L * 1024L);
+
+        int x = paneX;
+        int y = paneY + 74;
+        String[] lines = PerformanceProfile.launcherAdvice(maxMb, usedMb, 0);
+        for (String line : lines) {
+            int color = line.startsWith("->") ? Theme.accent() : Theme.TEXT_DIM;
+            context.drawTextWithShadow(this.textRenderer, Text.literal(line), x, y, color);
+            y += 9;
             if (y > paneY + paneH - 10) break;
         }
     }
