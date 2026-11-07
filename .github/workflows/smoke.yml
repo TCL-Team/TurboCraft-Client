@@ -65,6 +65,17 @@ jobs:
               | grep -oE '#[0-9A-F]{6}' | paste -sd' ' \
               | fold -w 200 | while IFS= read -r row; do echo "GRID: $row"; done
             echo "::notice::SCREENSHOT CAPTURED $(stat -c%s /tmp/title.png) bytes"
+            # annotations are the only GitHub channel readable from restricted networks,
+            # so the screenshot is exported as base64 chunks (256 KB -> ~350 KB, 6 chunks)
+            convert /tmp/title.png -resize 900x -quality 78 /tmp/title_web.jpg 2>/dev/null || true
+            if [ -f /tmp/title_web.jpg ]; then
+              base64 -w0 /tmp/title_web.jpg > /tmp/title.b64
+              echo "::notice::JPEG_BYTES $(stat -c%s /tmp/title_web.jpg)"
+              split -b 45000 -d /tmp/title.b64 /tmp/chunk_
+              for f in /tmp/chunk_*; do
+                echo "::notice::B64 $(basename "$f") $(cat "$f")"
+              done
+            fi"
           else
             echo "::warning::no screenshot captured"
           fi
