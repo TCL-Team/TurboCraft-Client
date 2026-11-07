@@ -73,6 +73,7 @@ jobs:
             fi
           done
           echo "::notice::fabric.mod.json version => $(unzip -p "$JAR" fabric.mod.json | grep -o '\"version\": *\"[^\"]*\"' | head -1)"
+          echo "::notice::entries => $(unzip -Z1 "$JAR" | tr '\n' ' ')"
 
       - name: Upload jar as artifact
         uses: actions/upload-artifact@v4
