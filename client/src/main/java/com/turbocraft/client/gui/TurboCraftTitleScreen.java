@@ -213,14 +213,15 @@ public class TurboCraftTitleScreen extends Screen {
         String clientVersion = FabricLoader.getInstance().getModContainer(TurboCraftClient.MOD_ID)
                 .map(c -> c.getMetadata().getVersion().getFriendlyString())
                 .orElse("dev");
-        // Fabric reports "1.20.1+build.10"; only the release part belongs in the footer
-        String mcVersion = this.client != null && this.client.getGameVersion() != null
-                ? this.client.getGameVersion()
-                : FabricLoader.getInstance().getModContainer("minecraft")
-                        .map(c -> c.getMetadata().getVersion().getFriendlyString())
-                        .orElse("?");
+        // FabricLoader's "minecraft" container is the only reliable source here:
+        // MinecraftClient#getGameVersion() returns the launcher profile name ("Fabric") in dev.
+        // Version looks like "1.20.1+build.10", so keep only the release part.
+        String mcVersion = FabricLoader.getInstance().getModContainer("minecraft")
+                .map(c -> c.getMetadata().getVersion().getFriendlyString())
+                .orElse("?");
         int plus = mcVersion.indexOf('+');
         if (plus > 0) mcVersion = mcVersion.substring(0, plus);
+        if (mcVersion.isBlank()) mcVersion = "1.20.1";
 
         int footerTop = this.height - 24;
         context.drawTextWithShadow(this.textRenderer,
