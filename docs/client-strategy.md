@@ -85,6 +85,22 @@ Pehle **1.20.1 ko perfect karo** — 80% mobile Java players wahi use karte hain
 
 ---
 
+## 4b. UI theme
+
+Neon green on black (`com.turbocraft.client.gui.Theme`):
+
+| Token | Value | Use |
+|---|---|---|
+| `ACCENT` | `#39FF14` | borders, key-lines, active states, logo |
+| `ACCENT_BRIGHT` | `#7CFF6B` | hover |
+| `PANEL` | `#050A05` @ 85% | black glass buttons/panels |
+| `TEXT` / `TEXT_DIM` / `TEXT_FAINT` | `#E9F7E6` / `#8FA394` / `#4E5A50` | labels |
+| `DANGER` | `#7A1F16` | Quit button |
+
+All colours live in one class so the title screen, HUD and menus cannot drift apart.
+Layout is mobile-first: every size is derived from logical width/height, with a `narrow` breakpoint
+below 560 px (Gui scale 3-4 on a 1080p phone lands around 360 px).
+
 ## 5. Legal — ye galtiyan mat karna
 
 1. **Minecraft jar ship mat karo.** User apne Microsoft account se Mojang se download karega.

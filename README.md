@@ -32,10 +32,11 @@ client/                                    # Fabric mod (Minecraft 1.20.1)
 
 ## Features (v0.1.0)
 
-**Custom title screen** — replaces vanilla's title screen with a TurboCraft one: dark gradient background
-(no panorama — saves GPU on phones), custom flat-colour buttons with cyan accents, Singleplayer /
-Multiplayer / TurboCraft Settings / Options / **Discord** / Quit, version footer. Responsive: shrinks and
-clamps the logo when Gui scale leaves little space.
+**Custom title screen** — FastClient/Lunar-style layout in **neon green on black**: full-bleed background
+art with dark overlay, logo mark + wordmark, centred button column (Singleplayer / Multiplayer /
+TurboCraft Settings / **Store** / Quit), a clickable **Discord card** bottom-right, and a version footer.
+Fully responsive — the column, card and footer re-flow instead of overlapping at phone Gui scales, and
+the card hides itself rather than sitting on top of a button.
 
 ![TurboCraft title screen](client/ci-artifacts/title-screen.jpg)
 
