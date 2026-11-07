@@ -2,6 +2,7 @@ package com.turbocraft.client.gui;
 
 import com.turbocraft.client.TurboCraftClient;
 import com.turbocraft.client.config.TurboCraftConfig;
+import com.turbocraft.client.core.Links;
 import com.turbocraft.client.gui.widget.TurboButton;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.gui.DrawContext;
@@ -71,7 +72,7 @@ public class TurboCraftTitleScreen extends Screen {
         btnH = this.height < 280 ? 16 : (this.height < 380 ? 19 : 22);
         int gap = btnH < 19 ? 3 : 4;
 
-        int rows = 4; // singleplayer, multiplayer, settings, store
+        int rows = 5; // singleplayer, multiplayer, settings, cosmetics, store
         int blockH = rows * btnH + (rows - 1) * gap;
         colTop = Math.max(64, this.height / 2 - blockH / 2 - 4);
         colX = this.width / 2 - btnW / 2;
@@ -97,7 +98,13 @@ public class TurboCraftTitleScreen extends Screen {
         y += btnH + gap;
 
         this.addDrawableChild(new TurboButton(colX, y, btnW, btnH,
-                Text.literal("Store / Cosmetics"),
+                Text.literal("Cosmetics"),
+                () -> this.client.setScreen(new ClientMenuScreen(this)),
+                TurboButton.Style.NORMAL, "CS"));
+        y += btnH + gap;
+
+        this.addDrawableChild(new TurboButton(colX, y, btnW, btnH,
+                Text.literal("Store"),
                 this::openStore,
                 TurboButton.Style.ACCENT, "ST"));
         storeBottom = y + btnH;
@@ -124,11 +131,11 @@ public class TurboCraftTitleScreen extends Screen {
     }
 
     private void openStore() {
-        openUrl(TurboCraftConfig.get().storeUrl);
+        openUrl(Links.pick(TurboCraftConfig.get().storeUrl, Links.STORE));
     }
 
     private void openDiscord() {
-        openUrl(TurboCraftConfig.get().discordUrl);
+        openUrl(Links.pick(TurboCraftConfig.get().discordUrl, Links.DISCORD));
     }
 
     private void openUrl(String url) {
@@ -195,7 +202,7 @@ public class TurboCraftTitleScreen extends Screen {
         context.getMatrices().push();
         context.getMatrices().translate(markX + markSize + 10, logoY, 0);
         context.getMatrices().scale(1.9f, 1.9f, 1.0f);
-        context.drawText(this.textRenderer, "TURBOCRAFT", 0, 0, Theme.ACCENT, true);
+        context.drawText(this.textRenderer, "TURBOCRAFT", 0, 0, Theme.accent(), true);
         context.getMatrices().pop();
 
         context.drawCenteredTextWithShadow(this.textRenderer, Text.literal(tagline),
@@ -205,15 +212,15 @@ public class TurboCraftTitleScreen extends Screen {
     /** A blocky cube outline + inner highlight, all from {@code fill} quads. */
     private static void drawCubeMark(DrawContext context, int x, int y, int size) {
         // outer square
-        context.fill(x, y, x + size, y + 1, Theme.ACCENT);
-        context.fill(x, y + size - 1, x + size, y + size, Theme.ACCENT);
-        context.fill(x, y + 1, x + 1, y + size - 1, Theme.ACCENT);
-        context.fill(x + size - 1, y + 1, x + size, y + size - 1, Theme.ACCENT);
+        context.fill(x, y, x + size, y + 1, Theme.accent());
+        context.fill(x, y + size - 1, x + size, y + size, Theme.accent());
+        context.fill(x, y + 1, x + 1, y + size - 1, Theme.accent());
+        context.fill(x + size - 1, y + 1, x + size, y + size - 1, Theme.accent());
 
         // top face + right face suggestion
-        context.fill(x + 4, y + 4, x + size - 4, y + 5, Theme.ACCENT_DIM);
-        context.fill(x + size - 5, y + 4, x + size - 4, y + size - 4, Theme.ACCENT_DIM);
-        context.fill(x + 4, y + size - 5, x + size - 4, y + size - 4, Theme.ACCENT_FAINT);
+        context.fill(x + 4, y + 4, x + size - 4, y + 5, Theme.accentDim());
+        context.fill(x + size - 5, y + 4, x + size - 4, y + size - 4, Theme.accentDim());
+        context.fill(x + 4, y + size - 5, x + size - 4, y + size - 4, Theme.accentFaint());
     }
 
     /**
@@ -255,7 +262,7 @@ public class TurboCraftTitleScreen extends Screen {
 
         context.fill(discordX, discordY, discordX + discordW, discordY + discordH,
                 hovered ? Theme.PANEL_HOVER : Theme.PANEL_SOLID);
-        int border = hovered ? Theme.ACCENT : Theme.BORDER;
+        int border = hovered ? Theme.accent() : Theme.border();
         context.fill(discordX, discordY, discordX + discordW, discordY + 1, border);
         context.fill(discordX, discordY + discordH - 1, discordX + discordW, discordY + discordH, border);
         context.fill(discordX, discordY + 1, discordX + 1, discordY + discordH - 1, border);
@@ -265,14 +272,14 @@ public class TurboCraftTitleScreen extends Screen {
         int iconSize = Math.min(22, discordH - 34);
         int iconX = discordX + (discordW - iconSize) / 2;
         int iconY = discordY + 8;
-        context.fill(iconX, iconY, iconX + iconSize, iconY + iconSize - 4, Theme.ACCENT);
-        context.fill(iconX + 4, iconY + iconSize - 4, iconX + iconSize - 4, iconY + iconSize, Theme.ACCENT);
-        context.fill(iconX + 5, iconY + 5, iconX + 7, iconY + 7, Theme.TEXT_ON_ACCENT);
-        context.fill(iconX + 10, iconY + 5, iconX + 12, iconY + 7, Theme.TEXT_ON_ACCENT);
-        context.fill(iconX + 15, iconY + 5, iconX + 17, iconY + 7, Theme.TEXT_ON_ACCENT);
+        context.fill(iconX, iconY, iconX + iconSize, iconY + iconSize - 4, Theme.accent());
+        context.fill(iconX + 4, iconY + iconSize - 4, iconX + iconSize - 4, iconY + iconSize, Theme.accent());
+        context.fill(iconX + 5, iconY + 5, iconX + 7, iconY + 7, Theme.textOnAccent());
+        context.fill(iconX + 10, iconY + 5, iconX + 12, iconY + 7, Theme.textOnAccent());
+        context.fill(iconX + 15, iconY + 5, iconX + 17, iconY + 7, Theme.textOnAccent());
 
         context.drawCenteredTextWithShadow(this.textRenderer, Text.literal("JOIN OUR DISCORD"),
-                discordX + discordW / 2, discordY + iconSize + 12, Theme.ACCENT);
+                discordX + discordW / 2, discordY + iconSize + 12, Theme.accent());
         context.drawCenteredTextWithShadow(this.textRenderer, Text.literal("CLICK HERE"),
                 discordX + discordW / 2, discordY + iconSize + 21, Theme.TEXT_DIM);
     }

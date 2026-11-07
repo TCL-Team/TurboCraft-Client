@@ -22,7 +22,9 @@ public class TurboButton extends PressableWidget {
         /** Filled green — for the "main" action. */
         ACCENT,
         /** Muted red — for Quit. */
-        DANGER
+        DANGER,
+        /** Currently-open entry in a sidebar/nav. */
+        SELECTED
     }
 
     private final Runnable action;
@@ -79,9 +81,14 @@ public class TurboButton extends PressableWidget {
 
         switch (this.style) {
             case ACCENT -> {
-                fill = hovered ? Theme.ACCENT_BRIGHT : Theme.ACCENT;
-                textColor = Theme.TEXT_ON_ACCENT;
-                border = Theme.ACCENT_BRIGHT;
+                fill = hovered ? Theme.accentBright() : Theme.accent();
+                textColor = Theme.textOnAccent();
+                border = Theme.accentBright();
+            }
+            case SELECTED -> {
+                fill = hovered ? Theme.PANEL_HOVER : Theme.withAlpha(Theme.accent(), 0x2E);
+                textColor = Theme.accent();
+                border = Theme.accent();
             }
             case DANGER -> {
                 fill = hovered ? Theme.DANGER_HOVER : Theme.DANGER;
@@ -90,15 +97,15 @@ public class TurboButton extends PressableWidget {
             }
             default -> {
                 fill = hovered ? Theme.PANEL_HOVER : Theme.PANEL;
-                textColor = hovered ? Theme.ACCENT : Theme.TEXT;
-                border = hovered ? Theme.ACCENT : Theme.BORDER;
+                textColor = hovered ? Theme.accent() : Theme.TEXT;
+                border = hovered ? Theme.accent() : Theme.border();
             }
         }
 
         if (!this.active) {
             fill = Theme.PANEL;
             textColor = Theme.TEXT_FAINT;
-            border = 0x2239FF14;
+            border = Theme.accentFaint();
         }
 
         context.fill(x, y, right, bottom, fill);
@@ -111,7 +118,7 @@ public class TurboButton extends PressableWidget {
 
         // left key-line (the FastClient-ish detail)
         if (this.active) {
-            int keyLine = this.style == Style.ACCENT ? Theme.ACCENT_BRIGHT : Theme.ACCENT;
+            int keyLine = this.style == Style.ACCENT ? Theme.accentBright() : Theme.accent();
             context.fill(x + 1, y + 1, x + 3, bottom - 1, keyLine);
         }
 
@@ -122,7 +129,8 @@ public class TurboButton extends PressableWidget {
         int contentX = x + (this.getWidth() - contentWidth) / 2;
 
         if (!this.icon.isEmpty()) {
-            context.drawTextWithShadow(this.renderer, this.icon, contentX, textY, textColor);
+            context.drawTextWithShadow(this.renderer, this.icon, contentX, textY,
+                    this.style == Style.SELECTED ? Theme.accent() : textColor);
         }
         context.drawTextWithShadow(this.renderer, this.getMessage(),
                 contentX + iconWidth, textY, textColor);

@@ -1,107 +1,295 @@
 package com.turbocraft.client.gui;
 
 import com.turbocraft.client.config.TurboCraftConfig;
+import com.turbocraft.client.core.Links;
+import com.turbocraft.client.gui.widget.TurboButton;
+import com.turbocraft.client.gui.widget.TurboToggle;
+import com.turbocraft.client.hud.HudRenderer;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.text.Text;
+import net.minecraft.util.Util;
 
-import java.util.function.Consumer;
+import java.net.URI;
 
 /**
- * The TurboCraft menu (Right Shift in-game).
+ * TurboCraft in-game menu — FastClient-style: left category rail, right settings pane.
  *
- * <p>Built from vanilla {@link ButtonWidget}s on purpose: custom widgets mean custom rendering,
- * and this has to stay legible at 30 FPS on a phone.
+ * <p>Right Shift opens it in-game, and it is also reachable from the title screen. Layout is
+ * width-driven: on narrow phone screens the rail shrinks and the pane takes the remaining space,
+ * rather than the two overlapping.
  */
 public class ClientMenuScreen extends Screen {
-    private static final int BUTTON_WIDTH = 200;
-    private static final int BUTTON_HEIGHT = 20;
-    private static final int GAP = 4;
+    private enum Tab {
+        HUD("HUD", "FPS, CPS, keystrokes, coords"),
+        EDITOR("EDITOR", "Drag & scale the HUD"),
+        COSMETICS("COSMETICS", "Capes, trails, accents"),
+        LINKS("LINKS", "Discord, store, source"),
+        ABOUT("ABOUT", "Version and credits");
 
-    /** Two half-width buttons under the toggles: setter + label. */
-    private int twoButtons(String leftLabel, Runnable left, String rightLabel, Runnable right,
-                           int centerX, int y) {
-        int half = BUTTON_WIDTH / 2 - 2;
-        this.addDrawableChild(ButtonWidget.builder(Text.literal(leftLabel), b -> left.run())
-                .dimensions(centerX - BUTTON_WIDTH / 2, y, half, BUTTON_HEIGHT).build());
-        this.addDrawableChild(ButtonWidget.builder(Text.literal(rightLabel), b -> right.run())
-                .dimensions(centerX + 2, y, half, BUTTON_HEIGHT).build());
-        return y + BUTTON_HEIGHT + GAP;
+        final String label;
+        final String subtitle;
+
+        Tab(String label, String subtitle) {
+            this.label = label;
+            this.subtitle = subtitle;
+        }
     }
 
+    private static final int ROW_H = 22;
+    private static final int GAP = 3;
+
     private final Screen parent;
+    private Tab tab = Tab.HUD;
+
+    private int railX;
+    private int railY;
+    private int railW;
+    private int railH;
+    private int paneX;
+    private int paneY;
+    private int paneW;
+    private int paneH;
 
     public ClientMenuScreen(Screen parent) {
-        super(Text.literal("TurboCraft Client"));
+        super(Text.literal("TurboCraft"));
         this.parent = parent;
     }
 
+    private static TurboCraftConfig config() {
+        return TurboCraftConfig.get();
+    }
+
+    // ------------------------------------------------------------------ layout
+
     @Override
     protected void init() {
-        TurboCraftConfig config = TurboCraftConfig.get();
-        int centerX = this.width / 2;
-        int startY = this.height / 2 - 100;
+        HudRenderer.suppressed = false;
 
-        int y = startY;
-        y = toggleButton("HUD: %s", config.hudEnabled, v -> config.hudEnabled = v, centerX, y);
-        y = toggleButton("FPS counter: %s", config.showFps, v -> config.showFps = v, centerX, y);
-        y = toggleButton("Frame graph + 1%% low: %s", config.showGraph, v -> config.showGraph = v, centerX, y);
-        y = toggleButton("CPS counter: %s", config.showCps, v -> config.showCps = v, centerX, y);
-        y = toggleButton("Coordinates: %s", config.showCoords, v -> config.showCoords = v, centerX, y);
-        y = toggleButton("Keystrokes: %s", config.showKeystrokes, v -> config.showKeystrokes = v, centerX, y);
-        y = toggleButton("Ping: %s", config.showPing, v -> config.showPing = v, centerX, y);
-        y = toggleButton("HUD background: %s", config.hudBackground, v -> config.hudBackground = v, centerX, y);
-        y = toggleButton("TurboCraft title screen: %s", config.customTitleScreen,
-                v -> config.customTitleScreen = v, centerX, y);
+        boolean narrow = this.width < 460;
+        railW = narrow ? 74 : 104;
+        railX = Math.max(6, this.width / 2 - 170);
+        railY = Math.max(34, this.height / 2 - 96);
+        railH = Math.min(this.height - railY - 26, 200);
 
-        y += 2;
-        y = twoButtons("Move HUD…", () -> this.client.setScreen(new HudEditorScreen(this)),
-                "Reset pos", () -> {
-                    config.hudX = 4;
-                    config.hudY = 4;
-                    TurboCraftConfig.save();
-                }, centerX, y);
+        paneX = railX + railW + 8;
+        paneW = Math.min(narrow ? this.width - paneX - 8 : 232, this.width - paneX - 8);
+        paneY = railY;
+        paneH = railH;
 
-        this.addDrawableChild(ButtonWidget.builder(
-                        Text.literal("Done"),
-                        button -> this.close())
-                .dimensions(centerX - BUTTON_WIDTH / 2, y + 4, BUTTON_WIDTH, BUTTON_HEIGHT)
-                .build());
+        buildTabs();
+        buildPane();
     }
 
-    /** Adds a button whose label shows its current state; returns the next Y. */
-    private int toggleButton(String label, boolean initial, Consumer<Boolean> setter,
-                             int centerX, int y) {
-        boolean[] state = {initial};
-        ButtonWidget button = ButtonWidget.builder(
-                        Text.literal(format(label, state[0])),
-                        b -> {
-                            state[0] = !state[0];
-                            setter.accept(state[0]);
-                            b.setMessage(Text.literal(format(label, state[0])));
+    private void buildTabs() {
+        int y = railY;
+        for (Tab t : Tab.values()) {
+            Tab target = t;
+            this.addDrawableChild(new TurboButton(railX, y, railW, 18, Text.literal(t.label),
+                    () -> {
+                        this.tab = target;
+                        this.clearAndInit();
+                    },
+                    t == this.tab ? TurboButton.Style.SELECTED : TurboButton.Style.NORMAL));
+            y += 18 + GAP;
+        }
+    }
+
+    private void buildPane() {
+        TurboCraftConfig c = config();
+        int rowW = Math.max(60, paneW);
+        int y = paneY;
+        int rowH = ROW_H - 3;
+
+        switch (this.tab) {
+            case HUD -> {
+                y = toggle("Master HUD", null, c.hudEnabled, v -> c.hudEnabled = v, paneX, y, rowW, rowH);
+                y = toggle("FPS counter", null, c.showFps, v -> c.showFps = v, paneX, y, rowW, rowH);
+                y = toggle("Frame graph + 1% low", null, c.showGraph, v -> c.showGraph = v,
+                        paneX, y, rowW, rowH);
+                y = toggle("CPS counter", null, c.showCps, v -> c.showCps = v, paneX, y, rowW, rowH);
+                y = toggle("Coordinates", null, c.showCoords, v -> c.showCoords = v, paneX, y, rowW, rowH);
+                y = toggle("Keystrokes", null, c.showKeystrokes, v -> c.showKeystrokes = v,
+                        paneX, y, rowW, rowH);
+                y = toggle("Ping", null, c.showPing, v -> c.showPing = v, paneX, y, rowW, rowH);
+                y = toggle("HUD background", null, c.hudBackground, v -> c.hudBackground = v,
+                        paneX, y, rowW, rowH);
+            }
+            case EDITOR -> {
+                int half = rowW / 2 - 2;
+                this.addDrawableChild(new TurboButton(paneX, y, rowW, 20,
+                        Text.literal("Open HUD editor"),
+                        () -> this.client.setScreen(new HudEditorScreen(this)),
+                        TurboButton.Style.ACCENT));
+                y += 24;
+
+                this.addDrawableChild(new TurboButton(paneX, y, half, 18, Text.literal("Scale -"),
+                        () -> changeScale(-0.1f)));
+                this.addDrawableChild(new TurboButton(paneX + rowW - half, y, half, 18,
+                        Text.literal("Scale +"), () -> changeScale(0.1f)));
+                y += 22;
+
+                this.addDrawableChild(new TurboButton(paneX, y, rowW, 18, Text.literal("Reset position"),
+                        () -> {
+                            TurboCraftConfig cc = config();
+                            cc.hudX = 4;
+                            cc.hudY = 4;
+                            cc.hudScale = 1.0f;
                             TurboCraftConfig.save();
-                        })
-                .dimensions(centerX - BUTTON_WIDTH / 2, y, BUTTON_WIDTH, BUTTON_HEIGHT)
-                .build();
-        this.addDrawableChild(button);
-        return y + BUTTON_HEIGHT + GAP;
+                        }));
+            }
+            case COSMETICS -> {
+                this.addDrawableChild(new TurboButton(paneX, y, rowW, 18,
+                        Text.literal("Accent: " + Theme.active().name()),
+                        () -> {
+                            cycleAccent();
+                            this.clearAndInit();
+                        },
+                        TurboButton.Style.SELECTED));
+                y += 22;
+
+                for (Theme.Palette p : Theme.PALETTES) {
+                    int color = p.accent();
+                    String name = p.name();
+                    this.addDrawableChild(new TurboButton(paneX, y, rowW, 16,
+                            Text.literal("  " + name),
+                            () -> {
+                                Theme.set(p);
+                                config().accent = p.id();
+                                TurboCraftConfig.save();
+                                this.clearAndInit();
+                            },
+                            Theme.active() == p ? TurboButton.Style.SELECTED : TurboButton.Style.NORMAL));
+                    // swatch strip drawn by the button icon slot is not colour-capable; draw in render
+                    y += 18;
+                    if (y > paneY + paneH - 30) break;
+                }
+
+                y = paneY + paneH - 26;
+                this.addDrawableChild(new TurboButton(paneX, y, rowW, 18,
+                        Text.literal("Get capes & trails"),
+                        () -> open(Links.pick(config().storeUrl, Links.STORE)),
+                        TurboButton.Style.ACCENT));
+            }
+            case LINKS -> {
+                this.addDrawableChild(new TurboButton(paneX, y, rowW, 20,
+                        Text.literal("Join Discord"),
+                        () -> open(Links.pick(config().discordUrl, Links.DISCORD)),
+                        TurboButton.Style.ACCENT));
+                y += 24;
+                this.addDrawableChild(new TurboButton(paneX, y, rowW, 18, Text.literal("Store"),
+                        () -> open(Links.pick(config().storeUrl, Links.STORE))));
+                y += 22;
+                this.addDrawableChild(new TurboButton(paneX, y, rowW, 18, Text.literal("GitHub source"),
+                        () -> open(Links.GITHUB)));
+            }
+            case ABOUT -> {
+                // text only — drawn in render()
+            }
+        }
     }
 
-    private static String format(String label, boolean on) {
-        return String.format(label, on ? "ON" : "OFF");
+    private int toggle(String label, String desc, boolean initial,
+                       java.util.function.Consumer<Boolean> setter,
+                       int x, int y, int w, int h) {
+        this.addDrawableChild(new TurboToggle(x, y, w, h, label, desc, initial, v -> {
+            setter.accept(v);
+            TurboCraftConfig.save();
+        }));
+        return y + h + GAP;
     }
+
+    private void changeScale(float delta) {
+        TurboCraftConfig c = config();
+        float next = Math.round((c.hudScale + delta) * 10f) / 10f;
+        c.hudScale = Math.max(0.5f, Math.min(2.0f, next));
+        TurboCraftConfig.save();
+    }
+
+    private void cycleAccent() {
+        Theme.Palette[] all = Theme.PALETTES;
+        int next = 0;
+        for (int i = 0; i < all.length; i++) {
+            if (all[i] == Theme.active()) {
+                next = (i + 1) % all.length;
+                break;
+            }
+        }
+        Theme.set(all[next]);
+        config().accent = all[next].id();
+        TurboCraftConfig.save();
+    }
+
+    private void open(String url) {
+        if (!Links.isSet(url)) return;
+        try {
+            Util.getOperatingSystem().open(URI.create(url));
+        } catch (Exception ignored) {
+        }
+    }
+
+    // ------------------------------------------------------------------ render
 
     @Override
     public void render(DrawContext context, int mouseX, int mouseY, float delta) {
         this.renderBackground(context);
-        context.drawCenteredTextWithShadow(this.textRenderer, this.title,
-                this.width / 2, this.height / 2 - 110, Theme.ACCENT);
-        context.drawCenteredTextWithShadow(this.textRenderer,
-                Text.literal("Right Shift to toggle • settings save automatically"),
-                this.width / 2, this.height - 24, Theme.TEXT_DIM);
+
+        // rail + pane panels
+        context.fill(railX - 6, railY - 22, railX + railW + 6, railY + railH + 6, Theme.BACKDROP);
+        context.fill(paneX - 6, paneY - 22, paneX + paneW + 6, paneY + paneH + 6, Theme.PANEL);
+        context.fill(paneX - 6, paneY - 22, paneX + paneW + 6, paneY - 21, Theme.accent());
+
+        // branding
+        context.drawTextWithShadow(this.textRenderer, Text.literal("TURBOCRAFT"),
+                railX - 4, railY - 17, Theme.accent());
+        context.drawTextWithShadow(this.textRenderer, Text.literal(this.tab.subtitle),
+                paneX, paneY - 17, Theme.TEXT_DIM);
+
+        if (this.tab == Tab.ABOUT) {
+            drawAbout(context);
+        }
+        if (this.tab == Tab.COSMETICS) {
+            drawSwatches(context);
+        }
+
         super.render(context, mouseX, mouseY, delta);
+
+        context.drawTextWithShadow(this.textRenderer,
+                Text.literal("Right Shift to close"), railX - 4, railY + railH + 10, Theme.TEXT_FAINT);
     }
+
+    private void drawAbout(DrawContext context) {
+        int x = paneX;
+        int y = paneY;
+        String[] lines = {
+                "TurboCraft Client",
+                "Minecraft 1.20.1 · Fabric",
+                "",
+                "Client-side only — safe on",
+                "vanilla servers.",
+                "",
+                "Not affiliated with Mojang",
+                "or Microsoft.",
+        };
+        for (String line : lines) {
+            context.drawTextWithShadow(this.textRenderer, Text.literal(line), x, y,
+                    line.startsWith("TurboCraft") ? Theme.accent() : Theme.TEXT_DIM);
+            y += 10;
+            if (y > paneY + paneH - 10) break;
+        }
+    }
+
+    /** Colour chips next to the theme rows. */
+    private void drawSwatches(DrawContext context) {
+        int y = paneY + 22 + 2;
+        for (Theme.Palette p : Theme.PALETTES) {
+            context.fill(paneX + 5, y + 5, paneX + 7, y + 11, p.accent());
+            y += 18;
+            if (y > paneY + paneH - 30) break;
+        }
+    }
+
+    // ------------------------------------------------------------------ behaviour
 
     @Override
     public void close() {
@@ -110,6 +298,6 @@ public class ClientMenuScreen extends Screen {
 
     @Override
     public boolean shouldPause() {
-        return false; // on a server, opening the menu should not freeze the world
+        return false;
     }
 }

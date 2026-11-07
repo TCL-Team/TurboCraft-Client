@@ -47,6 +47,14 @@ public class TurboCraftConfig {
     /** Opened by the "Store / Cosmetics" button. Empty = button does nothing. */
     public String storeUrl = "";
 
+    // ---- Cosmetics ----
+    /** Accent palette id: neon | cyan | blood | void | gold. */
+    public String accent = "neon";
+    /** Cosmetic cape id from the store (`neon`, `cyan`, `blood`, `void`, `gold`); empty = none. */
+    public String capeSkin = "";
+    /** Cosmetic trail id; empty = none. */
+    public String trailSkin = "";
+
     // ---- Misc ----
     public boolean chatPrefix = true;
 

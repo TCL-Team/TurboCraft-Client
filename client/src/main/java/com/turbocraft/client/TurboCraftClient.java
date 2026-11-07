@@ -4,6 +4,7 @@ import com.turbocraft.client.config.TurboCraftConfig;
 import com.turbocraft.client.event.InputTracker;
 import com.turbocraft.client.gui.ClientMenuScreen;
 import com.turbocraft.client.gui.HudEditorScreen;
+import com.turbocraft.client.gui.Theme;
 import com.turbocraft.client.hud.HudRenderer;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
@@ -30,6 +31,7 @@ public class TurboCraftClient implements ClientModInitializer {
     @Override
     public void onInitializeClient() {
         TurboCraftConfig.load();
+        Theme.setById(TurboCraftConfig.get().accent);
         InputTracker.init();
         HudRenderer.init();
 

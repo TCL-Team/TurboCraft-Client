@@ -33,7 +33,7 @@ public final class HudRenderer {
     private static final int PADDING = 3;
     private static final int WHITE = Theme.TEXT;
     private static final int BG = Theme.PANEL;
-    private static final int ACCENT = Theme.ACCENT;
+    private static int accent() { return Theme.accent(); }
     private static final int MUTED = Theme.TEXT_DIM;
 
     // ---- frame timing (for FPS, graph and 1% low) ----
@@ -180,7 +180,7 @@ public final class HudRenderer {
             double ms = preview ? 16.0 + (i % 7) : nanos / 1_000_000.0;
             int barHeight = (int) Math.round(GRAPH_HEIGHT - Math.min(GRAPH_HEIGHT, ms / 2.0));
             barHeight = Math.max(1, Math.min(GRAPH_HEIGHT, barHeight));
-            int color = ms > 33 ? 0xFFFF4D4D : ms > 20 ? 0xFFFFC436 : ACCENT;
+            int color = ms > 33 ? 0xFFFF4D4D : ms > 20 ? 0xFFFFC436 : accent();
             context.fill(x + 1 + i, y + 1 + (GRAPH_HEIGHT - barHeight),
                     x + 2 + i, y + 1 + GRAPH_HEIGHT, color);
         }
@@ -210,10 +210,10 @@ public final class HudRenderer {
     private static void drawKey(DrawContext context, MinecraftClient client, int x, int y,
                                 int width, int height, String label, boolean pressed,
                                 TurboCraftConfig config) {
-        int bg = pressed ? Theme.ACCENT : (config.hudBackground ? Theme.PANEL : Theme.ACCENT_FAINT);
+        int bg = pressed ? Theme.accent() : (config.hudBackground ? Theme.PANEL : Theme.accentFaint());
         context.fill(x, y, x + width, y + height, bg);
         if (!label.isEmpty()) {
-            int textColor = pressed ? Theme.TEXT_ON_ACCENT : WHITE;
+            int textColor = pressed ? Theme.textOnAccent() : WHITE;
             int textX = x + (width - client.textRenderer.getWidth(label)) / 2;
             int textY = y + (height - 8) / 2 + 1;
             context.drawText(client.textRenderer, label, textX, textY, textColor, true);
@@ -226,7 +226,7 @@ public final class HudRenderer {
             context.fill(x, y, x + client.textRenderer.getWidth(text) + PADDING * 2,
                     y + LINE, BG);
         }
-        context.drawText(client.textRenderer, text, x + PADDING, y + 1, ACCENT, true);
+        context.drawText(client.textRenderer, text, x + PADDING, y + 1, accent(), true);
     }
 
     private static boolean isDown(MinecraftClient client, int glfwKey) {
