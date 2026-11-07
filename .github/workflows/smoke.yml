@@ -76,14 +76,24 @@ jobs:
           # Coordinates are for the smoke test's own logical resolution, so they are only a hint —
           # if the click misses we still keep the title screenshot.
           if command -v xdotool >/dev/null; then
-            # "TurboCraft Settings" is the 3rd button of the column
-            DISPLAY=:99 xdotool mousemove 500 271 click 1 2>/dev/null || true
-            sleep 5
-            DISPLAY=:99 import -window root /tmp/menu.png 2>/dev/null || true
-            # and the Cosmetics tab inside that menu (left rail, 3rd row)
-            DISPLAY=:99 xdotool mousemove 400 200 click 1 2>/dev/null || true
-            sleep 3
-            DISPLAY=:99 import -window root /tmp/menu2.png 2>/dev/null || true
+            # The game window is not at (0,0) on the root display, so coordinates must come from
+            # xdotool's window geometry — hardcoded root coordinates landed on the wrong button.
+            eval "$(DISPLAY=:99 xdotool search --name 'Minecraft' getwindowgeometry --shell 2>/dev/null | head -4)"
+            if [ -n "${W:-}" ]; then
+              CX=$((X + W / 2))
+              # "TurboCraft Settings" sits at ~50% of the window height
+              CY=$((Y + H / 2))
+              DISPLAY=:99 xdotool mousemove "$CX" "$CY" click 1 2>/dev/null || true
+              sleep 5
+              DISPLAY=:99 import -window root /tmp/menu.png 2>/dev/null || true
+
+              # inside the client menu the left rail starts ~10% from the left, cosmetic row is 3rd
+              MX=$((X + W * 12 / 100))
+              MY=$((Y + H * 38 / 100))
+              DISPLAY=:99 xdotool mousemove "$MX" "$MY" click 1 2>/dev/null || true
+              sleep 3
+              DISPLAY=:99 import -window root /tmp/menu2.png 2>/dev/null || true
+            fi
           fi
 
           # coarse colour grid so CI logs show what was actually drawn
