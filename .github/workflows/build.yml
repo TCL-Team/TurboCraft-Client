@@ -61,6 +61,19 @@ jobs:
             echo "::error::${line}" || true
           done < /tmp/annot.txt
 
+      - name: Verify jar contents (readable via check-run annotations)
+        run: |
+          JAR=$(ls client/build/libs/turbocraft-client-*.jar | grep -v sources | head -1)
+          echo "::notice::JAR: $JAR ($(stat -c%s "$JAR") bytes)"
+          for entry in fabric.mod.json turbocraft.mixins.json assets/turbocraft/icon.png assets/turbocraft/lang/en_us.json com/turbocraft/client/TurboCraftClient.class com/turbocraft/client/hud/HudRenderer.class com/turbocraft/client/gui/ClientMenuScreen.class com/turbocraft/client/mixin/MouseMixin.class; do
+            if unzip -l "$JAR" | grep -q " $entry"; then
+              echo "::notice::OK $entry"
+            else
+              echo "::error::MISSING $entry"
+            fi
+          done
+          echo "::notice::fabric.mod.json version => $(unzip -p "$JAR" fabric.mod.json | grep -o '\"version\": *\"[^\"]*\"' | head -1)"
+
       - name: Upload jar as artifact
         uses: actions/upload-artifact@v4
         with:
