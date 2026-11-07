@@ -30,12 +30,33 @@ client/                                    # Fabric mod (Minecraft 1.20.1)
 | Build (jar + resources verified) | ✅ green |
 | Smoke test (MC 1.20.1 boot with mod, 0 mixin errors) | ✅ green |
 
-## Feature status (v0.1.0)
+## Features (v0.1.0)
 
-- FPS / CPS / coordinates / ping HUD
-- Keystrokes (WASD + space)
-- Right Shift in-game menu, toggles with auto-save config
-- Client-side only — vanilla servers (Hypixel, etc.) safe
+**Custom title screen** — replaces vanilla's title screen with a TurboCraft one: dark gradient background
+(no panorama — saves GPU on phones), custom flat-colour buttons with cyan accents, Singleplayer /
+Multiplayer / TurboCraft Settings / Options / **Discord** / Quit, version footer. Responsive: shrinks and
+clamps the logo when Gui scale leaves little space.
+
+![TurboCraft title screen](client/ci-artifacts/title-screen.jpg)
+
+**In-game**
+- HUD: FPS, CPS (L|R), coordinates, ping, keystrokes (WASD + space)
+- Frame-time graph + **1% low** (smoothness, not just a big FPS number)
+- Right Shift menu with toggles, auto-saved to `config/turbocraft.json`
+- HUD editor: drag to move, ± to scale (0.5x–2x)
+- Client-side only — safe on vanilla servers (Hypixel, etc.)
+
+## Customising
+
+`config/turbocraft.json`:
+```json
+{
+  "customTitleScreen": true,
+  "discordUrl": "https://discord.gg/turbocraft",
+  "hudX": 4, "hudY": 4, "hudScale": 1.0,
+  "showGraph": true
+}
+```
 
 ## Build
 

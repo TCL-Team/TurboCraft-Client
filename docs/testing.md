@@ -7,8 +7,9 @@
 | **Build TurboCraft Client** | compile + jar + resources (fabric.mod.json, mixins, icon, lang) | Actions tab |
 | **Smoke test (headless Minecraft)** | MC 1.20.1 actually boot hota hai mod ke saath, mixin apply hota hai, 0 crash | Actions tab |
 
-Smoke test Ubuntu runner pe **Xvfb + Mesa llvmpipe** se game boot karta hai (8 min cap) aur
-`[TurboCraft] Client loaded` marker dhoondhta hai. Ye asli phone test ka replacement nahi hai —
+Smoke test Ubuntu runner pe **Xvfb + Mesa llvmpipe** se game boot karta hai, `[TurboCraft] Client loaded`
+marker dhoondhta hai, aur **title screen ka screenshot** leke `client/ci-artifacts/title-screen.jpg` me
+commit kar deta hai — isliye visual regression bina phone ke bhi dikh jaati hai. Ye asli phone test ka replacement nahi hai —
 GPU path (GL4ES/MobileGlues/Zink) wahan cover nahi hota — par **startup/mixin crash 100% pakad leta hai**.
 
 Latest verified run: `client/build/libs/turbocraft-client-0.1.0.jar` — 34 KB, saare entries present.
@@ -29,6 +30,8 @@ Latest verified run: `client/build/libs/turbocraft-client-0.1.0.jar` — 34 KB, 
 
 ### Kya check karna hai (checklist)
 
+- [ ] **Title screen** TurboCraft wala dikha (gradient, cyan buttons, Discord button)
+- [ ] Title screen pe buttons kaam karte hain (Singleplayer / Multiplayer / Settings)
 - [ ] Game normally load hua (crash nahi)
 - [ ] HUD top-left dikh raha hai: `FPS: xx`, `CPS: 0 | 0`, `XYZ: ...`
 - [ ] Mouse click karne pe CPS badhta hai (left click → pehla number)
