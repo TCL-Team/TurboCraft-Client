@@ -37,7 +37,22 @@ jobs:
         working-directory: client
         run: |
           chmod +x gradlew
-          ./gradlew build --stacktrace
+          set -o pipefail
+          ./gradlew build --stacktrace 2>&1 | tee /tmp/build.log
+
+      - name: Publish failure log to issue #1
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          {
+            echo "**Build failed** — run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+            echo '```'
+            grep -E "^(> Task|FAILURE|What went wrong|Execution failed|Caused by|\* What|error:|.*error:)" -A 3 /tmp/build.log | tail -120
+            tail -40 /tmp/build.log
+            echo '```'
+          } > /tmp/comment.md
+          gh issue comment 1 --repo "${{ github.repository }}" --body-file /tmp/comment.md
 
       - name: Upload jar as artifact
         uses: actions/upload-artifact@v4
