@@ -1,5 +1,7 @@
 package com.turbocraft.client.gui.widget;
 
+import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.font.TextRenderer;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.narration.NarrationMessageBuilder;
 import net.minecraft.client.gui.widget.PressableWidget;
@@ -24,6 +26,13 @@ public class TurboButton extends PressableWidget {
     private final Runnable action;
     private final boolean accent;
 
+    /**
+     * Text renderer captured at construction time — {@code PressableWidget} does not expose one, and
+     * in 1.20.1 the global {@code MinecraftClient.getInstance().textRenderer} is not yet initialised
+     * at the moment the title screen widgets are created.
+     */
+    private final TextRenderer renderer;
+
     public TurboButton(int x, int y, int width, int height, Text message, Runnable action) {
         this(x, y, width, height, message, action, false);
     }
@@ -33,9 +42,10 @@ public class TurboButton extends PressableWidget {
         super(x, y, width, height, message);
         this.action = action;
         this.accent = accent;
+        this.renderer = MinecraftClient.getInstance().textRenderer;
     }
 
-    @Override
+    /** Declared as public: {@code PressableWidget#onPress} is package-private in 1.20.1. */
     public void onPress() {
         if (action != null) action.run();
     }
@@ -84,7 +94,7 @@ public class TurboButton extends PressableWidget {
         }
 
         int textY = y + (this.getHeight() - 8) / 2 + 1;
-        context.drawCenteredTextWithShadow(this.getTextRenderer(), this.getMessage(),
+        context.drawCenteredTextWithShadow(this.renderer, this.getMessage(),
                 x + this.getWidth() / 2, textY, textColor);
     }
 

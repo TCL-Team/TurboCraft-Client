@@ -106,11 +106,6 @@ public class TurboCraftTitleScreen extends Screen {
     }
 
     @Override
-    public void renderBackground(DrawContext context, int mouseX, int mouseY, float delta) {
-        // intentionally empty — see render()
-    }
-
-    @Override
     public void render(DrawContext context, int mouseX, int mouseY, float delta) {
         drawGradient(context);
         drawPanel(context);
