@@ -75,7 +75,7 @@ jobs:
               for f in /tmp/chunk_*; do
                 echo "::notice::B64 $(basename "$f") $(cat "$f")"
               done
-            fi"
+            fi
           else
             echo "::warning::no screenshot captured"
           fi
