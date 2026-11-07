@@ -10,7 +10,8 @@ jo TurboCraft Launcher ke saath aur Pojav / Amethyst / Zalith jaise launchers me
 ```
 docs/
 ├── android-java-edition-engine-notes.md   # Android pe Java Edition kaise chalta hai (Pojav/Amethyst source study)
-└── client-strategy.md                     # launcher vs client, roadmap, licensing, phone-only dev workflow
+├── client-strategy.md                     # launcher vs client, roadmap, licensing, phone-only dev workflow
+└── testing.md                             # CI + phone test checklist, crash troubleshooting
 
 client/                                    # Fabric mod (Minecraft 1.20.1)
 ├── src/main/java/com/turbocraft/client/
@@ -19,7 +20,15 @@ client/                                    # Fabric mod (Minecraft 1.20.1)
 └── build.gradle
 
 .github/workflows/build.yml                # push pe jar build + artifact + rolling release
+.github/workflows/smoke.yml                # headless MC boot test (mixin/startup crash detector)
 ```
+
+## Status
+
+| Workflow | State |
+|---|---|
+| Build (jar + resources verified) | ✅ green |
+| Smoke test (MC 1.20.1 boot with mod, 0 mixin errors) | ✅ green |
 
 ## Feature status (v0.1.0)
 
@@ -47,6 +56,7 @@ cd client && ./gradlew build
 4. Game me **Right Shift** → TurboCraft menu.
 
 Details: [`docs/client-strategy.md`](docs/client-strategy.md),
+[`docs/testing.md`](docs/testing.md),
 [`client/README.md`](client/README.md).
 
 ## License
