@@ -40,6 +40,11 @@ public class TurboCraftConfig {
     public float hudScale = 1.0f;
     public boolean hudBackground = true;
 
+    // ---- Title screen ----
+    public boolean customTitleScreen = true;
+    /** Discord invite opened by the title screen button. Change it in config/turbocraft.json. */
+    public String discordUrl = "https://discord.gg/turbocraft";
+
     // ---- Misc ----
     public boolean chatPrefix = true;
 

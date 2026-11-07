@@ -52,6 +52,8 @@ public class ClientMenuScreen extends Screen {
         y = toggleButton("Keystrokes: %s", config.showKeystrokes, v -> config.showKeystrokes = v, centerX, y);
         y = toggleButton("Ping: %s", config.showPing, v -> config.showPing = v, centerX, y);
         y = toggleButton("HUD background: %s", config.hudBackground, v -> config.hudBackground = v, centerX, y);
+        y = toggleButton("TurboCraft title screen: %s", config.customTitleScreen,
+                v -> config.customTitleScreen = v, centerX, y);
 
         y += 2;
         y = twoButtons("Move HUD…", () -> this.client.setScreen(new HudEditorScreen(this)),
