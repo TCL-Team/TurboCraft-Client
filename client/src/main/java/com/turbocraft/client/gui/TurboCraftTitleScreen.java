@@ -51,6 +51,7 @@ public class TurboCraftTitleScreen extends Screen {
     private int discordH;
 
     private int logoY;
+    private boolean discordVisible = true;
 
     public TurboCraftTitleScreen() {
         super(Text.literal("TurboCraft"));
@@ -103,15 +104,26 @@ public class TurboCraftTitleScreen extends Screen {
                 () -> this.client.scheduleStop(),
                 TurboButton.Style.DANGER));
 
-        // Discord card, bottom-right
-        discordW = 128;
-        discordH = 66;
-        discordX = this.width - discordW - 14;
-        discordY = this.height - discordH - 14;
-        if (discordY < quitY + btnH + 6) {
-            // very small screens: shrink the card instead of overlapping the buttons
-            discordH = 48;
-            discordY = this.height - discordH - 10;
+        // Discord card, bottom-right. It must never overlap the centred column: on narrow screens
+        // the column and the card would otherwise collide (exactly what happened at 1000x562).
+        discordW = 122;
+        discordH = 62;
+        int cardRight = this.width - 12;
+        discordX = cardRight - discordW;
+        discordY = this.height - discordH - 26;
+
+        boolean cardFits = discordX > colX + btnW + 8;
+        if (!cardFits) {
+            // narrow / phone-portrait: shrink and push it below the column's last button
+            discordW = Math.min(118, this.width - 24);
+            discordH = 46;
+            discordX = this.width - discordW - 10;
+            discordY = this.height - discordH - 6;
+        }
+        discordVisible = cardFits || (discordY > quitY + btnH + 4);
+        if (!discordVisible) {
+            discordW = 0;
+            discordH = 0;
         }
     }
 
@@ -161,16 +173,19 @@ public class TurboCraftTitleScreen extends Screen {
 
         context.drawTexture(BACKGROUND, drawX, drawY, 0, 0, drawW, drawH, imgW, imgH);
 
-        // darken (and add a green tint) in horizontal bands — cheap alpha compositing
+        // darken in horizontal bands, heavier at the bottom so the button column pops.
+        // Kept light at the top: the generated art is already dark, and over-darkening it made the
+        // whole screen look like a flat black rectangle.
         int bands = 18;
         for (int i = 0; i < bands; i++) {
             int y0 = this.height * i / bands;
             int y1 = this.height * (i + 1) / bands;
             float t = i / (float) (bands - 1);
-            int alpha = (int) (0x30 + 0x60 * t);
-            context.fill(0, y0, this.width, y1, (alpha << 24));
+            int alpha = (int) (0x10 + 0x3C * t);
+            context.fill(0, y0, this.width, y1, alpha << 24);
         }
-        context.fill(0, 0, this.width, this.height, 0x0A39FF14);
+        // faint neon wash from the top-left corner
+        context.fill(0, 0, this.width, this.height, 0x0839FF14);
     }
 
     /** Logo glyph + wordmark + tagline. */
@@ -218,13 +233,14 @@ public class TurboCraftTitleScreen extends Screen {
         int plus = mcVersion.indexOf('+');
         if (plus > 0) mcVersion = mcVersion.substring(0, plus);
 
-        Text line = Text.literal("TurboCraft " + clientVersion + " (mc " + mcVersion + ")");
+        Text line = Text.literal("TurboCraft " + clientVersion + "  |  mc " + mcVersion);
         context.drawCenteredTextWithShadow(this.textRenderer, line,
-                this.width / 2, this.height - 18, Theme.TEXT_FAINT);
+                this.width / 2, this.height - 11, Theme.TEXT_FAINT);
     }
 
     /** Discord promo card — clickable region, not a widget, so it can sit anywhere. */
     private void drawDiscordCard(DrawContext context, int mouseX, int mouseY) {
+        if (!discordVisible) return;
         boolean hovered = mouseX >= discordX && mouseX < discordX + discordW
                 && mouseY >= discordY && mouseY < discordY + discordH;
 
@@ -253,8 +269,8 @@ public class TurboCraftTitleScreen extends Screen {
     }
 
     private void drawFooter(DrawContext context) {
-        context.drawTextWithShadow(this.textRenderer,
-                Text.literal("Not affiliated with Mojang or Microsoft"),
+        Text disclaimer = Text.literal("Not affiliated with Mojang or Microsoft");
+        context.drawTextWithShadow(this.textRenderer, disclaimer,
                 6, this.height - 11, Theme.TEXT_FAINT);
     }
 
