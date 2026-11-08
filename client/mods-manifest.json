@@ -1,0 +1,19 @@
+{
+  "_comment": "TurboCraft Launcher isse profile banate waqt auto-install kar sakta hai. Slugs Modrinth ke hain — launcher Modrinth API (api.modrinth.com/v2) se resolve kare, APK me mods bundle na kare (license + size dono ka issue).",
+  "minecraft_version": "1.20.1",
+  "loader": "fabric",
+  "mods": [
+    { "slug": "fabric-api", "required": true, "reason": "TurboCraft ko chahiye" },
+    { "slug": "sodium", "required": true, "reason": "FPS — renderer replacement" },
+    { "slug": "lithium", "required": true, "reason": "FPS — server/game logic optimisations" },
+    { "slug": "indium", "required": false, "reason": "Sodium ke saath Fabric rendering API compat" },
+    { "slug": "iris", "required": false, "reason": "Shaders (Zink/MobileGlues pe hi theek chalte hain)" },
+    { "slug": "ferrite-core", "required": false, "reason": "RAM usage kam" },
+    { "slug": "krypton", "required": false, "reason": "Multiplayer networking latency" }
+  ],
+  "notes": [
+    "Sodium/Lithium MIT hain — attribution ke saath redistribute allowed.",
+    "Iris LGPL — redistribute karne pe uske sources ka link dena.",
+    "Pojav/Amethyst pe Sodium chalane ke liye launcher ko -Dsodium.checks.issue2561=false chahiye hota hai."
+  ]
+}

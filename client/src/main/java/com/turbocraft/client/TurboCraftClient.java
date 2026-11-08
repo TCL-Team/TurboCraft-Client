@@ -1,0 +1,67 @@
+package com.turbocraft.client;
+
+import com.turbocraft.client.config.TurboCraftConfig;
+import com.turbocraft.client.event.InputTracker;
+import com.turbocraft.client.gui.ClientMenuScreen;
+import com.turbocraft.client.gui.HudEditorScreen;
+import com.turbocraft.client.gui.Theme;
+import com.turbocraft.client.hud.HudRenderer;
+import com.turbocraft.client.perf.GcTuner;
+import com.turbocraft.client.perf.ParticleBudget;
+import net.fabricmc.api.ClientModInitializer;
+import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
+import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
+import net.minecraft.client.option.KeyBinding;
+import net.minecraft.client.util.InputUtil;
+import org.lwjgl.glfw.GLFW;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+/**
+ * TurboCraft Client entrypoint.
+ *
+ * <p>Everything in this mod is client-side only: it never touches the server, so it is safe to
+ * join any vanilla Java server (including Hypixel, which runs 1.8.9 — see docs/client-strategy.md).
+ */
+public class TurboCraftClient implements ClientModInitializer {
+    public static final String MOD_ID = "turbocraft";
+    public static final Logger LOGGER = LoggerFactory.getLogger("TurboCraft");
+
+    /** Right Shift by default — same muscle memory as Lunar / Feather. */
+    public static KeyBinding menuKey;
+
+    @Override
+    public void onInitializeClient() {
+        TurboCraftConfig.load();
+        Theme.setById(TurboCraftConfig.get().accent);
+        InputTracker.init();
+        ParticleBudget.init();
+        HudRenderer.init();
+
+        menuKey = KeyBindingHelper.registerKeyBinding(new KeyBinding(
+                "key.turbocraft.menu",
+                InputUtil.Type.KEYSYM,
+                GLFW.GLFW_KEY_RIGHT_SHIFT,
+                "key.categories.turbocraft"
+        ));
+
+        ClientTickEvents.END_CLIENT_TICK.register(client -> {
+            InputTracker.onClientTick();
+
+            // safety: if a screen was closed by the game (teleport, death), never leave the HUD hidden
+            if (HudRenderer.suppressed && !(client.currentScreen instanceof HudEditorScreen)) {
+                HudRenderer.suppressed = false;
+            }
+
+            // works in-game AND on the title screen, so the HUD can be set up before joining a server
+            while (menuKey.wasPressed()) {
+                if (client.currentScreen == null) {
+                    client.setScreen(new ClientMenuScreen(null));
+                }
+            }
+        });
+
+        GcTuner.logOnce();
+        LOGGER.info("[TurboCraft] Client loaded — press Right Shift in-game for the menu.");
+    }
+}

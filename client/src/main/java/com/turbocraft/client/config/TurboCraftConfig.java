@@ -1,0 +1,98 @@
+package com.turbocraft.client.config;
+
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.turbocraft.client.TurboCraftClient;
+import net.fabricmc.loader.api.FabricLoader;
+
+import java.io.IOException;
+import java.io.Reader;
+import java.io.Writer;
+import java.nio.file.Files;
+import java.nio.file.Path;
+
+/**
+ * Simple JSON config at {@code config/turbocraft.json}.
+ *
+ * <p>Deliberately hand-rolled instead of using Cloth Config: on Android every extra dependency is
+ * one more thing that can break inside the Pojav/Amethyst JVM, and this file is tiny.
+ */
+public class TurboCraftConfig {
+    private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
+    private static final Path PATH = FabricLoader.getInstance()
+            .getConfigDir()
+            .resolve("turbocraft.json");
+
+    private static TurboCraftConfig instance;
+
+    // ---- HUD toggles ----
+    public boolean hudEnabled = true;
+    public boolean showFps = true;
+    public boolean showCoords = true;
+    public boolean showKeystrokes = true;
+    public boolean showCps = true;
+    public boolean showPing = true;
+    public boolean showGraph = true;   // frame-time graph + 1% low
+    public boolean showFrameTime = true; // "FT: 12.4ms" — the number that explains low FPS
+    public boolean showParticleBudget = false; // "P: 480/1200" — live particle cap readout
+
+    // ---- Performance ----
+    /**
+     * Max particles spawned per tick (20/sec). 0 = unlimited.
+     * This is the single biggest lever in TNT/explosion scenes: the particle tick is
+     * single-threaded, so 20k particles cost far more than the GPU work they create.
+     */
+    public int particleBudget = 0;
+
+    // ---- HUD placement ----
+    public int hudX = 4;
+    public int hudY = 4;
+    public float hudScale = 1.0f;
+    public boolean hudBackground = true;
+
+    // ---- Title screen ----
+    public boolean customTitleScreen = true;
+    /** Discord invite opened by the title screen button. Change it in config/turbocraft.json. */
+    public String discordUrl = "https://discord.gg/turbocraft";
+    /** Opened by the "Store / Cosmetics" button. Empty = button does nothing. */
+    public String storeUrl = "";
+
+    // ---- Cosmetics ----
+    /** Accent palette id: neon | cyan | blood | void | gold. */
+    public String accent = "neon";
+    /** Cosmetic cape id from the store (`neon`, `cyan`, `blood`, `void`, `gold`); empty = none. */
+    public String capeSkin = "";
+    /** Cosmetic trail id; empty = none. */
+    public String trailSkin = "";
+
+    // ---- Misc ----
+    public boolean chatPrefix = true;
+
+    public static TurboCraftConfig get() {
+        if (instance == null) load();
+        return instance;
+    }
+
+    public static void load() {
+        if (Files.exists(PATH)) {
+            try (Reader reader = Files.newBufferedReader(PATH)) {
+                instance = GSON.fromJson(reader, TurboCraftConfig.class);
+            } catch (Exception e) {
+                TurboCraftClient.LOGGER.warn("[TurboCraft] Could not read config, using defaults", e);
+            }
+        }
+        if (instance == null) instance = new TurboCraftConfig();
+        save();
+    }
+
+    public static void save() {
+        try {
+            Files.createDirectories(PATH.getParent());
+            try (Writer writer = Files.newBufferedWriter(PATH)) {
+                GSON.toJson(get(), writer);
+            }
+        } catch (IOException e) {
+            TurboCraftClient.LOGGER.warn("[TurboCraft] Could not save config", e);
+        }
+    }
+}

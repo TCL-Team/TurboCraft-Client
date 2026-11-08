@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "id": "turbocraft",
+  "version": "${version}",
+  "name": "TurboCraft Client",
+  "description": "TurboCraft Client — HUD, keystrokes, CPS and a clean in-game menu for Minecraft: Java Edition on Android and PC.",
+  "authors": [
+    "TurboCraft"
+  ],
+  "contact": {
+    "homepage": "https://github.com/TCL-Team/TurboCraft-Client"
+  },
+  "license": "MIT",
+  "icon": "assets/turbocraft/icon.png",
+  "environment": "client",
+  "entrypoints": {
+    "client": [
+      "com.turbocraft.client.TurboCraftClient"
+    ]
+  },
+  "mixins": [
+    "turbocraft.mixins.json"
+  ],
+  "depends": {
+    "fabricloader": ">=0.15.0",
+    "fabric-api": "*",
+    "minecraft": "~1.20.1",
+    "java": ">=17"
+  }
+}
