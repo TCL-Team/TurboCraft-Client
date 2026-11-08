@@ -129,9 +129,11 @@ jobs:
           sleep 2
           pkill -f "net.minecraft" 2>/dev/null || true
 
-      - name: Commit screenshot to branch
+      - name: Commit screenshot and log to branch
         if: always()
         run: |
+          mkdir -p client/ci-artifacts
+          cp /tmp/client.log client/ci-artifacts/client-log-tail.txt 2>/dev/null || true
           ls -la client/ci-artifacts/ || exit 0
           git config user.name "TurboCraft CI"
           git config user.email "ci@turbocraft.local"
