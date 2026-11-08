@@ -5,6 +5,7 @@ import com.turbocraft.client.core.Links;
 import com.turbocraft.client.gui.widget.TurboButton;
 import com.turbocraft.client.gui.widget.TurboToggle;
 import com.turbocraft.client.hud.HudRenderer;
+import com.turbocraft.client.perf.GcTuner;
 import com.turbocraft.client.perf.ParticleBudget;
 import com.turbocraft.client.perf.PerformanceProfile;
 import net.minecraft.client.gui.DrawContext;
@@ -339,23 +340,42 @@ public class ClientMenuScreen extends Screen {
         }
     }
 
-    /** Live memory + launcher advice. Reads the JVM, so it reports what the launcher actually set. */
+    /**
+     * Live JVM facts. These come from {@code Runtime}/{@code MXBean}, i.e. the <b>heap</b> the JVM was
+     * actually started with — not the device RAM that launcher overlays show. That mix-up is why a
+     * "2048 MB" setting can appear as "6121/7413 MB" in an overlay and send people chasing ghosts.
+     */
     private void drawPerfInfo(DrawContext context) {
-        Runtime rt = Runtime.getRuntime();
-        long maxMb = rt.maxMemory() / (1024L * 1024L);
-        long usedMb = (rt.totalMemory() - rt.freeMemory()) / (1024L * 1024L);
+        GcTuner.Stats stats = GcTuner.snapshot();
 
         int x = paneX;
-        int y = paneY + 74;
-        // JVM heap only. Launchers often show *device* RAM in their overlay, which is ~7 GB on a
-        // phone and has nothing to do with the -Xmx value; reading Runtime here avoids that mix-up.
-        String[] lines = PerformanceProfile.launcherAdvice(maxMb, usedMb, 0);
-        for (String line : lines) {
-            int color = line.startsWith("->") ? Theme.accent() : Theme.TEXT_DIM;
-            context.drawTextWithShadow(this.textRenderer, Text.literal(line), x, y, color);
+        int y = paneY + 96;
+        int color = Theme.TEXT_DIM;
+
+        String heap = String.format("heap %d / %d MB  (%d%%)",
+                stats.usedMb(), stats.maxMb(), stats.heapPercent());
+        context.drawTextWithShadow(this.textRenderer, Text.literal(heap), x, y, color);
+        y += 9;
+
+        String gc = String.format("GC %d runs, avg %d ms", stats.gcCount(), stats.avgPauseMs());
+        context.drawTextWithShadow(this.textRenderer, Text.literal(gc), x, y, color);
+        y += 9;
+
+        String advice = GcTuner.advice(stats);
+        if (advice != null) {
+            context.drawTextWithShadow(this.textRenderer, Text.literal(advice), x, y, Theme.accent());
             y += 9;
-            if (y > paneY + paneH - 10) break;
         }
+
+        y += 2;
+        context.drawTextWithShadow(this.textRenderer,
+                Text.literal("Launcher JVM args:"), x, y, Theme.TEXT_FAINT);
+        y += 9;
+        String args = GcTuner.suggestedLauncherArgs();
+        if (this.textRenderer.getWidth(args) > paneW) {
+            args = args.length() > 34 ? args.substring(0, 34) + "..." : args;
+        }
+        context.drawTextWithShadow(this.textRenderer, Text.literal(args), x, y, Theme.TEXT_FAINT);
     }
 
     /** Colour chips next to the theme rows. */

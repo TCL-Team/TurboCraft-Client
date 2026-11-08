@@ -6,6 +6,7 @@ import com.turbocraft.client.gui.ClientMenuScreen;
 import com.turbocraft.client.gui.HudEditorScreen;
 import com.turbocraft.client.gui.Theme;
 import com.turbocraft.client.hud.HudRenderer;
+import com.turbocraft.client.perf.GcTuner;
 import com.turbocraft.client.perf.ParticleBudget;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
@@ -60,6 +61,7 @@ public class TurboCraftClient implements ClientModInitializer {
             }
         });
 
+        GcTuner.logOnce();
         LOGGER.info("[TurboCraft] Client loaded — press Right Shift in-game for the menu.");
     }
 }
