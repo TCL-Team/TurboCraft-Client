@@ -12,12 +12,12 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 /**
  * Applies {@link ParticleBudget} to every particle spawn.
  *
- * <p>Yarn 1.20.1 has two overloads; the one every caller funnels through is
- * {@code addParticle(ParticleEffect, double x, double y, double z, double vx, double vy, double vz)}
- * returning {@code Particle}. A second 3-coordinate overload is also hooked for safety.
+ * <p>Yarn 1.20.1 has exactly one spawn entry point that matters:
+ * {@code addParticle(ParticleEffect, double, double, double, double, double, double) -> Particle}.
+ * (There is no 3-coordinate overload in this version — that is what broke the previous build.)
  *
- * <p>{@code require = 0} means a future rename disables the cap instead of crashing the game —
- * the mod's contract is that a missing particle cap must never take the client down.
+ * <p>{@code require = 0}: if a future 1.20.x patch renames this, the particle cap silently turns off
+ * instead of crashing the game. A performance feature must never be a crash source.
  */
 @Mixin(ParticleManager.class)
 public class ParticleManagerMixin {
@@ -28,20 +28,9 @@ public class ParticleManagerMixin {
             cancellable = true,
             require = 0
     )
-    private void turbocraft$budgetFull(ParticleEffect parameters, double x, double y, double z,
-                                       double velocityX, double velocityY, double velocityZ,
-                                       CallbackInfoReturnable<Particle> cir) {
-        if (!ParticleBudget.allowSpawn()) cir.setReturnValue(null);
-    }
-
-    @Inject(
-            method = "addParticle(Lnet/minecraft/particle/ParticleEffect;DDD)Lnet/minecraft/client/particle/Particle;",
-            at = @At("HEAD"),
-            cancellable = true,
-            require = 0
-    )
-    private void turbocraft$budgetShort(ParticleEffect parameters, double x, double y, double z,
-                                        CallbackInfoReturnable<Particle> cir) {
+    private void turbocraft$budget(ParticleEffect parameters, double x, double y, double z,
+                                   double velocityX, double velocityY, double velocityZ,
+                                   CallbackInfoReturnable<Particle> cir) {
         if (!ParticleBudget.allowSpawn()) cir.setReturnValue(null);
     }
 }

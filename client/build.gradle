@@ -45,32 +45,3 @@ jar {
         )
     }
 }
-
-
-// Diagnostic: prints the real ParticleManager signatures from the mapped jar so a mixin target can
-// be verified instead of guessed. Runs as part of `build`.
-tasks.register("printParticleSigs") {
-    dependsOn "compileJava"
-    doLast {
-        def jar = configurations.compileClasspath.files.find { it.name.contains("minecraft") }
-        println "MINECRAFT JAR: ${jar}"
-        def cl = new URLClassLoader([jar] as URL[], (ClassLoader) null)
-        def cls = cl.loadClass("net.minecraft.client.particle.ParticleManager")
-        cls.declaredMethods.findAll { it.name.toLowerCase().contains("particle") }.each { m ->
-            println "SIG: ${m.name}(${m.parameterTypes.collect { it.simpleName }.join(',')}) -> ${m.returnType.simpleName}"
-        }
-    }
-}
-
-tasks.named("compileJava") {
-    doLast {
-        def jar = configurations.compileClasspath.files.find { it.name.contains("minecraft") }
-        if (jar) {
-            def cl = new URLClassLoader([jar] as URL[], (ClassLoader) null)
-            def cls = cl.loadClass("net.minecraft.client.particle.ParticleManager")
-            cls.declaredMethods.findAll { it.name.toLowerCase().contains("particle") }.each { m ->
-                println "SIG: ${m.name}(${m.parameterTypes.collect { it.simpleName }.join(',')}) -> ${m.returnType.simpleName}"
-            }
-        }
-    }
-}
