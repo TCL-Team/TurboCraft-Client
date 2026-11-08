@@ -150,6 +150,12 @@ jobs:
           echo "::notice::TurboCraft loaded markers: ${LOADED}"
           echo "::notice::Crash markers: ${CRASH}"
 
+          if [ "$CRASH" -gt 0 ]; then
+            echo "=== crash context ==="
+            grep -nE "MixinApplyError|Mixin apply failed|MixinTransformerError|Unexpected error|HaltException" -A 6 /tmp/client.log \
+              | head -60 | cut -c1-300
+          fi
+
           if [ "$LOADED" -ge 1 ] && [ "$CRASH" -eq 0 ]; then
             echo "::notice::SMOKE PASS — mod loaded, no mixin errors"
           else
