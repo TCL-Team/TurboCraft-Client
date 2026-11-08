@@ -4,7 +4,8 @@
   "compatibilityLevel": "JAVA_17",
   "client": [
     "MouseMixin",
-    "MinecraftClientMixin"
+    "MinecraftClientMixin",
+    "ParticleManagerMixin"
   ],
   "injectors": {
     "defaultRequire": 1

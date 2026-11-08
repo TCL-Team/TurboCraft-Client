@@ -34,6 +34,15 @@ public class TurboCraftConfig {
     public boolean showPing = true;
     public boolean showGraph = true;   // frame-time graph + 1% low
     public boolean showFrameTime = true; // "FT: 12.4ms" — the number that explains low FPS
+    public boolean showParticleBudget = false; // "P: 480/1200" — live particle cap readout
+
+    // ---- Performance ----
+    /**
+     * Max particles spawned per tick (20/sec). 0 = unlimited.
+     * This is the single biggest lever in TNT/explosion scenes: the particle tick is
+     * single-threaded, so 20k particles cost far more than the GPU work they create.
+     */
+    public int particleBudget = 0;
 
     // ---- HUD placement ----
     public int hudX = 4;

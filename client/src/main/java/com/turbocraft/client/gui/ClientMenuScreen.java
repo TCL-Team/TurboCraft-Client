@@ -5,6 +5,7 @@ import com.turbocraft.client.core.Links;
 import com.turbocraft.client.gui.widget.TurboButton;
 import com.turbocraft.client.gui.widget.TurboToggle;
 import com.turbocraft.client.hud.HudRenderer;
+import com.turbocraft.client.perf.ParticleBudget;
 import com.turbocraft.client.perf.PerformanceProfile;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
@@ -132,13 +133,35 @@ public class ClientMenuScreen extends Screen {
                 y += 24;
 
                 this.addDrawableChild(new TurboButton(paneX, y, rowW, 16,
-                        Text.literal("Toggle frame time in HUD"),
+                        Text.literal("Frame time: " + (config().showFrameTime ? "ON" : "OFF")),
                         () -> {
                             TurboCraftConfig cc = config();
                             cc.showFrameTime = !cc.showFrameTime;
                             TurboCraftConfig.save();
                             this.clearAndInit();
                         }));
+                y += 20;
+
+                // ---- particle budget ----
+                int budget = config().particleBudget;
+                String budgetLabel = budget <= 0 ? "unlimited" : (budget * 20) + "/s";
+                this.addDrawableChild(new TurboButton(paneX, y, rowW, 16,
+                        Text.literal("Particle cap: " + budgetLabel),
+                        () -> {
+                            TurboCraftConfig cc = config();
+                            cc.particleBudget = nextBudget(cc.particleBudget);
+                            cc.showParticleBudget = cc.particleBudget > 0;
+                            TurboCraftConfig.save();
+                            this.clearAndInit();
+                        },
+                        budget > 0 ? TurboButton.Style.SELECTED : TurboButton.Style.NORMAL));
+                y += 20;
+
+                this.addDrawableChild(new TurboButton(paneX, y, rowW, 14,
+                        Text.literal("Live: " + ParticleBudget.perSecond() + "/s"
+                                + (ParticleBudget.skippedPerSecond() > 0
+                                    ? "   skipping " + ParticleBudget.skippedPerSecond() : "")),
+                        () -> this.clearAndInit()));
             }
             case EDITOR -> {
                 int half = rowW / 2 - 2;
@@ -222,6 +245,15 @@ public class ClientMenuScreen extends Screen {
             TurboCraftConfig.save();
         }));
         return y + h + GAP;
+    }
+
+    /** Cycles through sane per-tick budgets: unlimited -> 150/s -> 300/s -> 600/s -> 1200/s. */
+    private static int nextBudget(int current) {
+        int[] values = {0, 8, 16, 32, 64};
+        for (int i = 0; i < values.length; i++) {
+            if (values[i] == current) return values[(i + 1) % values.length];
+        }
+        return 16;
     }
 
     private void changeScale(float delta) {
@@ -315,6 +347,8 @@ public class ClientMenuScreen extends Screen {
 
         int x = paneX;
         int y = paneY + 74;
+        // JVM heap only. Launchers often show *device* RAM in their overlay, which is ~7 GB on a
+        // phone and has nothing to do with the -Xmx value; reading Runtime here avoids that mix-up.
         String[] lines = PerformanceProfile.launcherAdvice(maxMb, usedMb, 0);
         for (String line : lines) {
             int color = line.startsWith("->") ? Theme.accent() : Theme.TEXT_DIM;

@@ -3,6 +3,7 @@ package com.turbocraft.client.hud;
 import com.turbocraft.client.config.TurboCraftConfig;
 import com.turbocraft.client.event.InputTracker;
 import com.turbocraft.client.gui.Theme;
+import com.turbocraft.client.perf.ParticleBudget;
 import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
@@ -117,6 +118,14 @@ public final class HudRenderer {
             }
         }
 
+        if (config.showParticleBudget && config.particleBudget > 0) {
+            String line = "P: " + ParticleBudget.perSecond() + "/" + (config.particleBudget * 20)
+                    + (ParticleBudget.skippedPerSecond() > 0
+                        ? "  -" + ParticleBudget.skippedPerSecond() : "");
+            drawLine(context, client, 0, cursorY, line, config);
+            cursorY += LINE;
+        }
+
         if (config.showCoords) {
             String coords = preview
                     ? "128 71 -240"
@@ -154,6 +163,10 @@ public final class HudRenderer {
         }
         if (config.showPing) {
             width = Math.max(width, textWidth(client, "Ping: 999ms") + PADDING * 2);
+            height += LINE;
+        }
+        if (config.showParticleBudget && config.particleBudget > 0) {
+            width = Math.max(width, textWidth(client, "P: 12000/12000  -9999") + PADDING * 2);
             height += LINE;
         }
         if (config.showCoords) {

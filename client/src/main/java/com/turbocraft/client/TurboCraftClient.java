@@ -6,6 +6,7 @@ import com.turbocraft.client.gui.ClientMenuScreen;
 import com.turbocraft.client.gui.HudEditorScreen;
 import com.turbocraft.client.gui.Theme;
 import com.turbocraft.client.hud.HudRenderer;
+import com.turbocraft.client.perf.ParticleBudget;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
@@ -33,6 +34,7 @@ public class TurboCraftClient implements ClientModInitializer {
         TurboCraftConfig.load();
         Theme.setById(TurboCraftConfig.get().accent);
         InputTracker.init();
+        ParticleBudget.init();
         HudRenderer.init();
 
         menuKey = KeyBindingHelper.registerKeyBinding(new KeyBinding(
