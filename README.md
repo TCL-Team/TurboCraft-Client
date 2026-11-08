@@ -47,8 +47,14 @@ the card hides itself rather than sitting on top of a button.
 recolour the title screen, HUD and menus instantly, no restart. Cape/trail slots reserved for the
 store; "Get capes & trails" opens the store.
 
+**Performance (PERF tab)**
+- One-click profiles: **MAX FPS**, Balanced, Vanilla
+- **Particle cap** (0 / 160 / 320 / 640 / 1280 per second) — the real fix for TNT & explosion lag
+- Live readout: particles/s created and skipped
+- Heap + GC diagnostics from `Runtime`/`MXBean` (never device RAM), with recommended launcher JVM args
+
 **HUD**
-- FPS, CPS (L|R), coordinates, ping, keystrokes (WASD + space)
+- FPS **+ frame time in ms** + 1% low, CPS (L|R), coordinates, ping, keystrokes (WASD + space)
 - Frame-time graph + **1% low** (smoothness, not just a big FPS number)
 - Right Shift menu with toggles, auto-saved to `config/turbocraft.json`
 - HUD editor: drag to move, ± to scale (0.5x–2x)

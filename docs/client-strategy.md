@@ -101,6 +101,53 @@ All colours live in one class so the title screen, HUD and menus cannot drift ap
 Layout is mobile-first: every size is derived from logical width/height, with a `narrow` breakpoint
 below 560 px (Gui scale 3-4 on a 1080p phone lands around 360 px).
 
+## 4c. Performance: kya asli FPS deta hai, kya nahi
+
+Users "max FPS chahte hain" — to pehle ye samajhna zaroori hai ki phone pe FPS kahan jaata hai.
+
+### Asli levers (mod inhe change kar sakta hai)
+
+| Lever | Effect | Where |
+|---|---|---|
+| **Particle cap** | TNT/explosion scenes me sabse bada. Particle tick single-threaded hai; 20k particles = 0 FPS | `ParticleBudget` + `ParticleManagerMixin` |
+| Render distance | Chunk meshes + rebuilds | `PerformanceProfile` |
+| Simulation distance | Entity ticking | `PerformanceProfile` |
+| Graphics FAST vs FANCY | Leaves, water, clouds | `PerformanceProfile` |
+| Clouds off | Per-frame geometry | `PerformanceProfile` |
+| Mipmaps 0 | Texture memory + sampling | `PerformanceProfile` |
+| Biome blend 0 | Per-block colour blending | `PerformanceProfile` |
+
+### Jo mod **nahi** kar sakta (launcher/JVM ke settings)
+
+| Lever | Why not |
+|---|---|
+| `-Xmx` (heap size) | JVM start argument. Mod sirf **measure** kar sakta hai (`GcTuner`) |
+| GC algorithm (`-XX:+UseSerialGC`) | Same — start argument. `GcTuner.suggestedLauncherArgs()` shows what to paste |
+| Renderer choice (MobileGlues/Zink/GL4ES) | Launcher/profile setting in Pojav-family engines |
+| Resolution scale | Launcher setting |
+| `-XX:MaxGCPauseMillis` | Start argument |
+
+`GcTuner` reads the real heap from `Runtime.maxMemory()`, which is the `-Xmx` value. That is why a
+launcher overlay showing "6121MB/7413MB" (device RAM) and a 2048MB setting can both be true at once —
+they measure different things. The PERF tab always shows the **JVM heap**, never device RAM.
+
+### "2250+ FPS" claims
+
+3989 FPS = 0.25 ms per frame. A phone GPU needs ~2-4 ms to rasterise a 1080p scene, so such numbers
+are not frame rates. They come from counters that reset mid-tick, GUI-only frames, or inflated
+values. The HUD therefore shows **frame time in ms next to FPS** and a **1% low**, which cannot be
+faked by a counting bug: `FPS: 62  16.1ms  1%: 41`.
+
+Particle budget values (per tick, ×20 = per second):
+
+| Value | Per second | Use |
+|---|---|---|
+| 0 | unlimited | vanilla |
+| 8 | 160/s | aggressive, TNT-test friendly |
+| 16 | 320/s | **recommended default for phones** |
+| 32 | 640/s | balanced |
+| 64 | 1280/s | basically vanilla visuals |
+
 ## 5. Legal — ye galtiyan mat karna
 
 1. **Minecraft jar ship mat karo.** User apne Microsoft account se Mojang se download karega.
