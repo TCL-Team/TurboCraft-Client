@@ -151,14 +151,15 @@ jobs:
           echo "::notice::Crash markers: ${CRASH}"
 
           if [ "$CRASH" -gt 0 ]; then
-            echo "=== crash context ==="
-            # annotations truncate at 4 KB, so emit a few focused lines only
+            echo "=== CRASH CONTEXT (plain stdout) ==="
             grep -nE "MixinApplyError|Mixin apply failed|MixinTransformerError|Unexpected error|HaltException" /tmp/client.log \
-              | head -3 | cut -c1-180
-            echo "--- first exception line ---"
-            grep -nE "^(java\.|net\.|org\.|com\.).*(Exception|Error)" /tmp/client.log | head -3 | cut -c1-180
-            echo "--- turbocraft lines ---"
-            grep -nE "TurboCraft|turbocraft" /tmp/client.log | head -8 | cut -c1-180
+              | head -2 | cut -c1-150
+            echo "=== FIRST EXCEPTION ==="
+            grep -nE "(Exception|Error)(:|$)" /tmp/client.log | head -2 | cut -c1-150
+            echo "=== TC LINES ==="
+            grep -nE "TurboCraft|turbocraft" /tmp/client.log | head -5 | cut -c1-150
+            echo "=== TAIL 25 ==="
+            tail -25 /tmp/client.log | cut -c1-150
           fi
 
           if [ "$LOADED" -ge 1 ] && [ "$CRASH" -eq 0 ]; then
