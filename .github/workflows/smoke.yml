@@ -152,8 +152,13 @@ jobs:
 
           if [ "$CRASH" -gt 0 ]; then
             echo "=== crash context ==="
-            grep -nE "MixinApplyError|Mixin apply failed|MixinTransformerError|Unexpected error|HaltException" -A 6 /tmp/client.log \
-              | head -60 | cut -c1-300
+            # annotations truncate at 4 KB, so emit a few focused lines only
+            grep -nE "MixinApplyError|Mixin apply failed|MixinTransformerError|Unexpected error|HaltException" /tmp/client.log \
+              | head -3 | cut -c1-180
+            echo "--- first exception line ---"
+            grep -nE "^(java\.|net\.|org\.|com\.).*(Exception|Error)" /tmp/client.log | head -3 | cut -c1-180
+            echo "--- turbocraft lines ---"
+            grep -nE "TurboCraft|turbocraft" /tmp/client.log | head -8 | cut -c1-180
           fi
 
           if [ "$LOADED" -ge 1 ] && [ "$CRASH" -eq 0 ]; then
